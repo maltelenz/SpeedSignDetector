@@ -2,6 +2,9 @@ cmake_minimum_required(VERSION 2.8)
 
 project(SpeedSignDetectorViewer)
 
+add_subdirectory(../Detector ${CMAKE_CURRENT_BINARY_DIR}/Detector)
+include_directories(../Detector)
+
 # Find includes in corresponding build directories
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
 # Instruct CMake to run moc automatically when needed.
@@ -21,3 +24,4 @@ add_executable(SpeedSignDetectorViewer
 
 # Use the Widgets module from Qt 5.
 target_link_libraries(SpeedSignDetectorViewer Qt5::Widgets)
+target_link_libraries(SpeedSignDetectorViewer Detector)
