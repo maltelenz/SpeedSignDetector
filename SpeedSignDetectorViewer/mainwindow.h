@@ -23,6 +23,8 @@ public:
 private slots:
   void on_actionLoad_Image_triggered();
 
+  void on_actionMean_Lines_toggled(bool on);
+
 private:
   Ui::MainWindow *ui;
 

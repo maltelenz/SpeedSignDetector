@@ -30,3 +30,13 @@ void MainWindow::on_actionLoad_Image_triggered()
   scene_.clear();
   scene_.addPixmap(detector_.getPixmap());
 }
+
+void MainWindow::on_actionMean_Lines_toggled(bool on)
+{
+  scene_.clear();
+  if (on) {
+    scene_.addPixmap(QPixmap::fromImage(detector_.averageLines()));
+  } else {
+    scene_.addPixmap(detector_.getPixmap());
+  }
+}

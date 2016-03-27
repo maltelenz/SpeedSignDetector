@@ -17,6 +17,8 @@ public:
 
   QPixmap getPixmap();
 
+  QImage averageLines();
+
 private:
   QString file_;
   QImage img_;
