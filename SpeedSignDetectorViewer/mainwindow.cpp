@@ -63,8 +63,8 @@ void MainWindow::on_selectionReleased(QRectF rectf)
         qAbs(rectf.width()),
         qAbs(rectf.height())
       );
-  if (!detector_.getImageSize().contains(nr)) {
-    // Drawn outside of image, abort!
+  if (!detector_.getImageSize().contains(nr) || nr.width() == 0 || nr.height() == 0) {
+    // Illegal rectangle, abort!
     return;
   }
   QColor mean(detector_.averageSection(nr.left(), nr.top(), nr.right(), nr.bottom()));
