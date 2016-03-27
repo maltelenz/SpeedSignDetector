@@ -53,6 +53,7 @@
    </attribute>
    <addaction name="actionMean_Lines"/>
    <addaction name="actionPainter"/>
+   <addaction name="actionReset"/>
   </widget>
   <widget class="QStatusBar" name="statusBar"/>
   <action name="actionLoad_Image">
@@ -89,6 +90,17 @@
    </property>
    <property name="toolTip">
     <string>Paint Rectangle</string>
+   </property>
+  </action>
+  <action name="actionReset">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="text">
+    <string>Reset</string>
+   </property>
+   <property name="toolTip">
+    <string>Reset image</string>
    </property>
   </action>
  </widget>

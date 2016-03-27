@@ -33,6 +33,7 @@ void MainWindow::on_actionLoad_Image_triggered()
 
   ui->actionMean_Lines->setEnabled(true);
   ui->actionPainter->setEnabled(true);
+  ui->actionReset->setEnabled(true);
 
   connect(&scene_, SIGNAL(mouseReleased(QRectF)), this, SLOT(on_selectionReleased(QRectF)));
 }
@@ -68,4 +69,10 @@ void MainWindow::on_selectionReleased(QRectF rectf)
   }
   QColor mean(detector_.averageSection(nr.left(), nr.top(), nr.right(), nr.bottom()));
   scene_.addRect(nr, QPen(mean), QBrush(mean));
+}
+
+void MainWindow::on_actionReset_triggered()
+{
+  scene_.clear();
+  scene_.addPixmap(detector_.getPixmap());
 }

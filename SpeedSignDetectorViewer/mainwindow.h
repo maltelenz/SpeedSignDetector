@@ -32,6 +32,8 @@ private slots:
 
   void on_selectionReleased(QRectF rectf);
 
+  void on_actionReset_triggered();
+
 private:
   Ui::MainWindow *ui;
 
