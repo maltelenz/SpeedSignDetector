@@ -16,9 +16,11 @@ public:
   void loadImage(QString file);
 
   QPixmap getPixmap();
+  QRect getImageSize();
 
   QImage averageLines();
 
+  QColor averageSection(int xStart, int yStart, int xStop, int yStop);
 private:
   QString file_;
   QImage img_;

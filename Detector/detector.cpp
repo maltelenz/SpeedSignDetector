@@ -31,6 +31,33 @@ QPixmap Detector::getPixmap()
   return QPixmap::fromImage(img_);
 }
 
+QRect Detector::getImageSize()
+{
+  return img_.rect();
+}
+
+QColor Detector::averageSection(int xStart, int yStart, int xStop, int yStop) {
+  int red(0);
+  int green(0);
+  int blue(0);
+
+  for (int lineNumber = yStart; lineNumber <= yStop; lineNumber++) {
+    const uchar* byte = img_.constScanLine(lineNumber);
+    for (int columnNumber = xStart; columnNumber < xStop; columnNumber++) {
+      const QRgb* rgb = (const QRgb*) byte + columnNumber;
+      red += qRed(*rgb);
+      green += qGreen(*rgb);
+      blue += qBlue(*rgb);
+    }
+  }
+  int numberPixels = (yStop - yStart) * (xStop - xStart);
+  red = red/numberPixels;
+  green = green/numberPixels;
+  blue = blue/numberPixels;
+
+  return QColor(red, green, blue);
+}
+
 QImage Detector::averageLines()
 {
   QImage meanImg(1, img_.height(), QImage::Format_RGB32);

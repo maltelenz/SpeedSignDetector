@@ -15,7 +15,7 @@
   </property>
   <widget class="QWidget" name="centralWidget">
    <layout class="QGridLayout" name="gridLayout">
-    <item row="0" column="0">
+    <item row="0" column="1">
      <widget class="QGraphicsView" name="graphicsView">
       <property name="sizePolicy">
        <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
@@ -52,7 +52,7 @@
     <bool>false</bool>
    </attribute>
    <addaction name="actionMean_Lines"/>
-   <addaction name="separator"/>
+   <addaction name="actionPainter"/>
   </widget>
   <widget class="QStatusBar" name="statusBar"/>
   <action name="actionLoad_Image">
@@ -67,11 +67,28 @@
    <property name="checkable">
     <bool>true</bool>
    </property>
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
    <property name="text">
     <string>Mean Lines</string>
    </property>
    <property name="toolTip">
     <string>Mean of every line</string>
+   </property>
+  </action>
+  <action name="actionPainter">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="text">
+    <string>Painter</string>
+   </property>
+   <property name="toolTip">
+    <string>Paint Rectangle</string>
    </property>
   </action>
  </widget>

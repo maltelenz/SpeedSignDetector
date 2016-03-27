@@ -5,6 +5,9 @@
 #include <QMainWindow>
 #include <QGraphicsScene>
 
+// SpeedSignDetectorViewer includes
+#include "imagescene.h"
+
 // Detector includes
 #include "detector.h"
 
@@ -25,10 +28,14 @@ private slots:
 
   void on_actionMean_Lines_toggled(bool on);
 
+  void on_actionPainter_triggered(bool on);
+
+  void on_selectionReleased(QRectF rectf);
+
 private:
   Ui::MainWindow *ui;
 
-  QGraphicsScene scene_;
+  ImageScene scene_;
 
   Detector detector_;
 };

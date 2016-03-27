@@ -29,6 +29,12 @@ void MainWindow::on_actionLoad_Image_triggered()
   detector_.loadImage(fileName);
   scene_.clear();
   scene_.addPixmap(detector_.getPixmap());
+  scene_.setSceneRect(detector_.getImageSize());
+
+  ui->actionMean_Lines->setEnabled(true);
+  ui->actionPainter->setEnabled(true);
+
+  connect(&scene_, SIGNAL(mouseReleased(QRectF)), this, SLOT(on_selectionReleased(QRectF)));
 }
 
 void MainWindow::on_actionMean_Lines_toggled(bool on)
@@ -39,4 +45,27 @@ void MainWindow::on_actionMean_Lines_toggled(bool on)
   } else {
     scene_.addPixmap(detector_.getPixmap());
   }
+}
+
+void MainWindow::on_actionPainter_triggered(bool on)
+{
+    if (!on) {
+    } else {
+    }
+}
+
+void MainWindow::on_selectionReleased(QRectF rectf)
+{
+  QRect nr(
+        qMin(rectf.left(), rectf.right()),
+        qMin(rectf.top(), rectf.bottom()),
+        qAbs(rectf.width()),
+        qAbs(rectf.height())
+      );
+  if (!detector_.getImageSize().contains(nr)) {
+    // Drawn outside of image, abort!
+    return;
+  }
+  QColor mean(detector_.averageSection(nr.left(), nr.top(), nr.right(), nr.bottom()));
+  scene_.addRect(nr, QPen(mean), QBrush(mean));
 }
