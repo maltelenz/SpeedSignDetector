@@ -20,6 +20,8 @@ public:
 private:
   QString file_;
   QImage img_;
+  const QSize imgSize_;
+
 };
 
 #endif // DETECTOR_H

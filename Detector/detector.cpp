@@ -3,7 +3,8 @@
 //Qt includes
 #include <QPixmap>
 
-Detector::Detector()
+Detector::Detector() :
+  imgSize_(700, 700)
 {
 }
 
@@ -15,6 +16,7 @@ Detector::Detector(QString file) :
 void Detector::loadImage()
 {
   img_ = QImage(file_);
+  img_ = img_.scaled(imgSize_, Qt::KeepAspectRatio);
 }
 
 void Detector::loadImage(QString file)

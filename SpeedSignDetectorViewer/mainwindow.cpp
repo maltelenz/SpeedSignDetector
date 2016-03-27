@@ -25,7 +25,7 @@ void MainWindow::on_actionLoad_Image_triggered()
 {
   QString fileName(
         QFileDialog::getOpenFileName(this,
-           tr("Open Image"), "/home", tr("Images (*.png *.jpg)")));
+           tr("Open Image"), QString(), tr("Images (*.png *.jpg)")));
   detector_.loadImage(fileName);
   scene_.clear();
   scene_.addPixmap(detector_.getPixmap());
