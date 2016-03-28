@@ -32,7 +32,7 @@ private:
   QImage sobelAngles_;
   const QSize imgSize_;
 
-  double positiveMod(double x, double y);
+  int interpolate(int a, int b, int progress);
 };
 
 #endif // DETECTOR_H

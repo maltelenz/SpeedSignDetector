@@ -159,15 +159,12 @@ void Detector::sobelEdges()
         }
         sum = abs(sumX) + abs(sumY);
         sum = qMin(sum, 255);
-        double phi = qAtan2(sumY, sumX);
-        if (phi == M_PI) {
-          phi = 0;
-        }
+        double phi = atan2(sumY, sumX);
         while (phi < 0) {
           phi += M_PI;
         }
         // Angle is between 0 and 180 degrees, where 0 is E/W, 45 is NE/SW and 90 is N/S
-        angle = qRound(phi * 180 / M_PI);
+        angle = qRound(qRadiansToDegrees(phi));
       }
       res.setPixel(x, y, qRgb(sum, sum, sum));
       sobelAngles_.setPixel(x, y, qRgb(angle, angle, angle));
@@ -182,9 +179,10 @@ void Detector::edgeThinning()
   int width = img_.width();
   int height = img_.height();
 
-  QRgb colorNegative;
-  QRgb colorPositive;
-  QRgb pixelColor;
+  int c1, c2, c3, c4;
+  int cP, cN;
+  int pixelColor;
+  int angle;
 
   QImage res(img_);
 
@@ -195,35 +193,47 @@ void Detector::edgeThinning()
         continue;
       }
       pixelColor = qGray(img_.pixel(x, y));
-      if (pixelColor < 0) {
+      if (pixelColor <= 0) {
         // Already black, needs no thinning
         continue;
       }
 
-      int angle(qGray(sobelAngles_.pixel(x, y)));
-      if (angle < 22.5) {
-        // Closest to 0, which is E/W, so look N/S
-        colorNegative = qGray(img_.pixel(x, y - 1));
-        colorPositive = qGray(img_.pixel(x, y + 1));
-      } else if (angle < 67.5) {
-        // Closest to 45, which is NE/SW, so look NW/SE
-        colorNegative = qGray(img_.pixel(x - 1, y - 1));
-        colorPositive = qGray(img_.pixel(x + 1, y + 1));
-      } else if (angle < 112.5) {
-        // Closest to 90, which is N/S, so look E/W
-        colorNegative = qGray(img_.pixel(x + 1, y));
-        colorPositive = qGray(img_.pixel(x - 1, y));
-      } else /* if (angle < 157.5) */ {
-        // Closest to 135, which is NW/SE, so look NE/SW
-        colorNegative = qGray(img_.pixel(x + 1, y - 1));
-        colorPositive = qGray(img_.pixel(x - 1, y + 1));
+      angle = qGray(sobelAngles_.pixel(x, y));
+      if (angle <= 45) {
+        c1 = qGray(img_.pixel(x, y - 1));
+        c2 = qGray(img_.pixel(x, y + 1));
+        c3 = qGray(img_.pixel(x - 1, y - 1));
+        c4 = qGray(img_.pixel(x + 1, y + 1));
+      } else if (angle <= 90) {
+        c1 = qGray(img_.pixel(x + 1, y));
+        c2 = qGray(img_.pixel(x - 1, y));
+        c3 = qGray(img_.pixel(x + 1, y - 1));
+        c4 = qGray(img_.pixel(x - 1, y + 1));
+      } else if (angle <= 135) {
+        c1 = qGray(img_.pixel(x - 1, y));
+        c2 = qGray(img_.pixel(x + 1, y));
+        c3 = qGray(img_.pixel(x - 1, y + 1));
+        c4 = qGray(img_.pixel(x + 1, y - 1));
+      } else /* if (angle < 180) */ {
+        c1 = qGray(img_.pixel(x, y + 1));
+        c2 = qGray(img_.pixel(x, y - 1));
+        c3 = qGray(img_.pixel(x + 1, y + 1));
+        c4 = qGray(img_.pixel(x - 1, y - 1));
       }
 
-      if (pixelColor < colorNegative || pixelColor < colorPositive) {
+      cP = interpolate(c1, c3, angle % 45);
+      cN = interpolate(c2, c4, angle % 45);
+
+      if (pixelColor < cP || pixelColor < cN) {
         // The current pixel is weaker than its surroundings, kill it.
         res.setPixel(x, y, qRgb(0, 0, 0));
       }
     }
   }
   img_ = res;
+}
+
+int Detector::interpolate(int a, int b, int progress)
+{
+  return a + (a - b) * ((float) progress / 45);
 }
