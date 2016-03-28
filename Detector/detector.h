@@ -19,8 +19,9 @@ public:
   QRect getImageSize();
 
   QImage averageLines();
-
   QColor averageSection(int xStart, int yStart, int xStop, int yStop);
+  QImage blurred();
+
 private:
   QString file_;
   QImage img_;

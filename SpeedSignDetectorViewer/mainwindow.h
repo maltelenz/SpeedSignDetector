@@ -34,6 +34,8 @@ private slots:
 
   void on_actionReset_triggered();
 
+  void on_actionBlur_triggered();
+
 private:
   Ui::MainWindow *ui;
 

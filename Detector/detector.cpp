@@ -3,6 +3,10 @@
 //Qt includes
 #include <QPixmap>
 #include <QRgb>
+#include <QGraphicsBlurEffect>
+#include <QGraphicsScene>
+#include <QGraphicsPixmapItem>
+#include <QPainter>
 
 Detector::Detector() :
   imgSize_(700, 700)
@@ -84,4 +88,22 @@ QImage Detector::averageLines()
   meanImg = meanImg.scaled(img_.width(), img_.height(), Qt::IgnoreAspectRatio);
 
   return meanImg;
+}
+
+QImage Detector::blurred()
+{
+  QGraphicsBlurEffect *blur = new QGraphicsBlurEffect;
+  blur->setBlurRadius(5);
+
+  QGraphicsScene scene;
+  QGraphicsPixmapItem item;
+
+  item.setPixmap(getPixmap());
+  item.setGraphicsEffect(blur);
+
+  scene.addItem(&item);
+  QImage res(img_.size(), QImage::Format_ARGB32);
+  QPainter ptr(&res);
+  scene.render(&ptr, QRectF(), img_.rect());
+  return res;
 }

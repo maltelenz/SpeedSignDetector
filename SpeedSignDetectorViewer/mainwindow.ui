@@ -54,6 +54,7 @@
    <addaction name="actionMean_Lines"/>
    <addaction name="actionPainter"/>
    <addaction name="actionReset"/>
+   <addaction name="actionBlur"/>
   </widget>
   <widget class="QStatusBar" name="statusBar"/>
   <action name="actionLoad_Image">
@@ -101,6 +102,17 @@
    </property>
    <property name="toolTip">
     <string>Reset image</string>
+   </property>
+  </action>
+  <action name="actionBlur">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="text">
+    <string>Blur</string>
+   </property>
+   <property name="toolTip">
+    <string>Add blur</string>
    </property>
   </action>
  </widget>

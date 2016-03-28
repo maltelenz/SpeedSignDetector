@@ -34,6 +34,7 @@ void MainWindow::on_actionLoad_Image_triggered()
   ui->actionMean_Lines->setEnabled(true);
   ui->actionPainter->setEnabled(true);
   ui->actionReset->setEnabled(true);
+  ui->actionBlur->setEnabled(true);
 
   connect(&scene_, SIGNAL(mouseReleased(QRectF)), this, SLOT(on_selectionReleased(QRectF)));
 }
@@ -75,4 +76,10 @@ void MainWindow::on_actionReset_triggered()
 {
   scene_.clear();
   scene_.addPixmap(detector_.getPixmap());
+}
+
+void MainWindow::on_actionBlur_triggered()
+{
+  scene_.clear();
+  scene_.addPixmap(QPixmap::fromImage(detector_.blurred()));
 }
