@@ -55,6 +55,9 @@
    <addaction name="actionPainter"/>
    <addaction name="actionReset"/>
    <addaction name="actionBlur"/>
+   <addaction name="actionEdges"/>
+   <addaction name="actionShowAngles"/>
+   <addaction name="actionEdge_Thinning"/>
   </widget>
   <widget class="QStatusBar" name="statusBar"/>
   <action name="actionLoad_Image">
@@ -113,6 +116,42 @@
    </property>
    <property name="toolTip">
     <string>Add blur</string>
+   </property>
+  </action>
+  <action name="actionEdges">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="text">
+    <string>Edges</string>
+   </property>
+   <property name="toolTip">
+    <string>Edge detection</string>
+   </property>
+  </action>
+  <action name="actionShowAngles">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="text">
+    <string>Show Angles</string>
+   </property>
+   <property name="toolTip">
+    <string>Show sobel angles</string>
+   </property>
+  </action>
+  <action name="actionEdge_Thinning">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="text">
+    <string>Edge Thinning</string>
+   </property>
+   <property name="toolTip">
+    <string>Apply a pass of edge thinning</string>
    </property>
   </action>
  </widget>

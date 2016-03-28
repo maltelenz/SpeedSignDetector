@@ -26,6 +26,10 @@ void MainWindow::on_actionLoad_Image_triggered()
   QString fileName(
         QFileDialog::getOpenFileName(this,
            tr("Open Image"), QString(), tr("Images (*.png *.jpg)")));
+  if (fileName.isNull()) {
+    // User pressed cancel
+    return;
+  }
   detector_.loadImage(fileName);
   scene_.clear();
   scene_.addPixmap(detector_.getPixmap());
@@ -35,6 +39,7 @@ void MainWindow::on_actionLoad_Image_triggered()
   ui->actionPainter->setEnabled(true);
   ui->actionReset->setEnabled(true);
   ui->actionBlur->setEnabled(true);
+  ui->actionEdges->setEnabled(true);
 
   connect(&scene_, SIGNAL(mouseReleased(QRectF)), this, SLOT(on_selectionReleased(QRectF)));
 }
@@ -72,14 +77,46 @@ void MainWindow::on_selectionReleased(QRectF rectf)
   scene_.addRect(nr, QPen(mean), QBrush(mean));
 }
 
-void MainWindow::on_actionReset_triggered()
+void MainWindow::refetchImage()
 {
   scene_.clear();
   scene_.addPixmap(detector_.getPixmap());
 }
 
+void MainWindow::on_actionReset_triggered()
+{
+  ui->actionShowAngles->setEnabled(false);
+  ui->actionEdge_Thinning->setEnabled(false);
+  detector_.loadImage();
+  refetchImage();
+}
+
 void MainWindow::on_actionBlur_triggered()
 {
-  scene_.clear();
-  scene_.addPixmap(QPixmap::fromImage(detector_.blurred()));
+  detector_.blurred();
+  refetchImage();
+}
+
+void MainWindow::on_actionEdges_triggered()
+{
+  detector_.sobelEdges();
+  ui->actionShowAngles->setEnabled(true);
+  ui->actionEdge_Thinning->setEnabled(true);
+  refetchImage();
+}
+
+void MainWindow::on_actionShowAngles_triggered(bool on)
+{
+    if (on) {
+      scene_.clear();
+      scene_.addPixmap(detector_.getSobelAnglePixmap());
+    } else {
+      refetchImage();
+    }
+}
+
+void MainWindow::on_actionEdge_Thinning_triggered()
+{
+    detector_.edgeThinning();
+    refetchImage();
 }

@@ -36,12 +36,19 @@ private slots:
 
   void on_actionBlur_triggered();
 
+  void on_actionEdges_triggered();
+
+  void on_actionShowAngles_triggered(bool on);
+
+  void on_actionEdge_Thinning_triggered();
+
 private:
   Ui::MainWindow *ui;
 
   ImageScene scene_;
 
   Detector detector_;
+  void refetchImage();
 };
 
 #endif // MAINWINDOW_H

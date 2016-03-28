@@ -16,17 +16,23 @@ public:
   void loadImage(QString file);
 
   QPixmap getPixmap();
+  QPixmap getSobelAnglePixmap();
+
   QRect getImageSize();
 
   QImage averageLines();
   QColor averageSection(int xStart, int yStart, int xStop, int yStop);
-  QImage blurred();
+  void blurred();
+  void sobelEdges();
+  void edgeThinning();
 
 private:
   QString file_;
   QImage img_;
+  QImage sobelAngles_;
   const QSize imgSize_;
 
+  double positiveMod(double x, double y);
 };
 
 #endif // DETECTOR_H
