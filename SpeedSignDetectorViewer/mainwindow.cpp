@@ -87,6 +87,7 @@ void MainWindow::on_actionReset_triggered()
 {
   ui->actionShowAngles->setEnabled(false);
   ui->actionEdge_Thinning->setEnabled(false);
+  ui->actionR_Table->setEnabled(false);
   detector_.loadImage();
   refetchImage();
 }
@@ -102,6 +103,7 @@ void MainWindow::on_actionEdges_triggered()
   detector_.sobelEdges();
   ui->actionShowAngles->setEnabled(true);
   ui->actionEdge_Thinning->setEnabled(true);
+  ui->actionR_Table->setEnabled(true);
   refetchImage();
 }
 
@@ -119,4 +121,14 @@ void MainWindow::on_actionEdge_Thinning_triggered()
 {
     detector_.edgeThinning();
     refetchImage();
+}
+
+void MainWindow::on_actionR_Table_triggered()
+{
+    detector_.generateRTable();
+}
+
+void MainWindow::on_actionQuit_triggered()
+{
+  QCoreApplication::quit();
 }

@@ -42,6 +42,10 @@ private slots:
 
   void on_actionEdge_Thinning_triggered();
 
+  void on_actionQuit_triggered();
+
+  void on_actionR_Table_triggered();
+
 private:
   Ui::MainWindow *ui;
 

@@ -23,7 +23,9 @@ Detector::Detector(QString file) :
 void Detector::loadImage()
 {
   img_ = QImage(file_);
-  img_ = img_.scaled(imgSize_, Qt::KeepAspectRatio);
+  if (img_.width() > imgSize_.width() || img_.height() > imgSize_.height()) {
+    img_ = img_.scaled(imgSize_, Qt::KeepAspectRatio);
+  }
 }
 
 void Detector::loadImage(QString file)
@@ -174,6 +176,37 @@ void Detector::sobelEdges()
     }
   }
   img_ = res;
+}
+
+void Detector::generateRTable()
+{
+  rTable_.clear();
+
+  int width(img_.width());
+  int height(img_.height());
+
+  // Assume the feature shape lies in the middle of the image
+  int cx = width/2;
+  int cy = height/2;
+
+  int pixelColor;
+  int angle;
+  int distance;
+
+  for (int y = 0; y < height; ++y) {
+    for (int x = 0; x < width; ++x) {
+      pixelColor = qGray(img_.pixel(x, y));
+      if (pixelColor <= 0) {
+        // Black, not an edge
+        continue;
+      }
+      // Not black, add an item into the R-table
+      angle = qGray(sobelAngles_.pixel(x, y));
+      distance = qSqrt(qPow(x - cx, 2) + qPow(y - cy, 2));
+      rTable_.insert(angle, QPair<int, int>(angle, distance));
+    }
+  }
+  qDebug() << rTable_;
 }
 
 void Detector::edgeThinning()

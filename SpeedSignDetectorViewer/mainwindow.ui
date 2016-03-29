@@ -41,6 +41,7 @@
      <string>File</string>
     </property>
     <addaction name="actionLoad_Image"/>
+    <addaction name="actionQuit"/>
    </widget>
    <addaction name="menuSpeed_Detector"/>
   </widget>
@@ -58,6 +59,7 @@
    <addaction name="actionEdges"/>
    <addaction name="actionShowAngles"/>
    <addaction name="actionEdge_Thinning"/>
+   <addaction name="actionR_Table"/>
   </widget>
   <widget class="QStatusBar" name="statusBar"/>
   <action name="actionLoad_Image">
@@ -152,6 +154,25 @@
    </property>
    <property name="toolTip">
     <string>Apply a pass of edge thinning</string>
+   </property>
+  </action>
+  <action name="actionQuit">
+   <property name="text">
+    <string>Quit</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+Q</string>
+   </property>
+  </action>
+  <action name="actionR_Table">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="text">
+    <string>R-Table</string>
+   </property>
+   <property name="toolTip">
+    <string>Generate R-Table</string>
    </property>
   </action>
  </widget>
