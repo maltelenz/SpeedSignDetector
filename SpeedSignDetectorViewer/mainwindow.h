@@ -46,6 +46,8 @@ private slots:
 
   void on_actionR_Table_triggered();
 
+  void on_actionFind_Object_triggered(bool on);
+
 private:
   Ui::MainWindow *ui;
 

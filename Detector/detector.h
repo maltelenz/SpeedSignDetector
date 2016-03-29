@@ -18,6 +18,7 @@ public:
 
   QPixmap getPixmap();
   QPixmap getSobelAnglePixmap();
+  QPixmap getObjectHeatmapPixmap();
 
   QRect getImageSize();
 
@@ -28,13 +29,16 @@ public:
   void edgeThinning();
 
   void generateRTable();
+  void findObject();
 
 private:
   QString file_;
   QImage img_;
   QImage sobelAngles_;
+  QImage findVoting_;
+  QMultiMap<int, QPair<double, double> > rTable_;
+
   const QSize imgSize_;
-  QMultiMap<int, QPair<int, int> > rTable_;
 
   static const int LOWER_EDGE_THRESHOLD_ = 100;
 

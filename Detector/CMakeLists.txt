@@ -12,6 +12,7 @@ find_package(Qt5Widgets)
 # Tell CMake to create the Detector library
 add_library(Detector STATIC
 	detector.cpp
+  math_utilities.cpp
 )
 
 # Use the Widgets module from Qt 5.

@@ -56,9 +56,9 @@ void MainWindow::on_actionMean_Lines_toggled(bool on)
 
 void MainWindow::on_actionPainter_triggered(bool on)
 {
-    if (!on) {
-    } else {
-    }
+  if (!on) {
+  } else {
+  }
 }
 
 void MainWindow::on_selectionReleased(QRectF rectf)
@@ -109,26 +109,38 @@ void MainWindow::on_actionEdges_triggered()
 
 void MainWindow::on_actionShowAngles_triggered(bool on)
 {
-    if (on) {
-      scene_.clear();
-      scene_.addPixmap(detector_.getSobelAnglePixmap());
-    } else {
-      refetchImage();
-    }
+  if (on) {
+    scene_.clear();
+    scene_.addPixmap(detector_.getSobelAnglePixmap());
+  } else {
+    refetchImage();
+  }
 }
 
 void MainWindow::on_actionEdge_Thinning_triggered()
 {
-    detector_.edgeThinning();
-    refetchImage();
+  detector_.edgeThinning();
+  refetchImage();
 }
 
 void MainWindow::on_actionR_Table_triggered()
 {
-    detector_.generateRTable();
+  detector_.generateRTable();
+  ui->actionFind_Object->setEnabled(true);
 }
 
 void MainWindow::on_actionQuit_triggered()
 {
   QCoreApplication::quit();
+}
+
+void MainWindow::on_actionFind_Object_triggered(bool on)
+{
+  detector_.findObject();
+  if (on) {
+    scene_.clear();
+    scene_.addPixmap(detector_.getObjectHeatmapPixmap());
+  } else {
+    refetchImage();
+  }
 }

@@ -60,6 +60,7 @@
    <addaction name="actionShowAngles"/>
    <addaction name="actionEdge_Thinning"/>
    <addaction name="actionR_Table"/>
+   <addaction name="actionFind_Object"/>
   </widget>
   <widget class="QStatusBar" name="statusBar"/>
   <action name="actionLoad_Image">
@@ -173,6 +174,17 @@
    </property>
    <property name="toolTip">
     <string>Generate R-Table</string>
+   </property>
+  </action>
+  <action name="actionFind_Object">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="text">
+    <string>Find Object</string>
    </property>
   </action>
  </widget>

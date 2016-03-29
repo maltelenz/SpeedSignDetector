@@ -10,6 +10,9 @@
 #include <qmath.h>
 #include <QDebug>
 
+// Detector includes
+#include "math_utilities.h"
+
 Detector::Detector() :
   imgSize_(700, 700)
 {
@@ -26,6 +29,7 @@ void Detector::loadImage()
   if (img_.width() > imgSize_.width() || img_.height() > imgSize_.height()) {
     img_ = img_.scaled(imgSize_, Qt::KeepAspectRatio);
   }
+  findVoting_ = QImage();
 }
 
 void Detector::loadImage(QString file)
@@ -42,6 +46,11 @@ QPixmap Detector::getPixmap()
 QPixmap Detector::getSobelAnglePixmap()
 {
   return QPixmap::fromImage(sobelAngles_);
+}
+
+QPixmap Detector::getObjectHeatmapPixmap()
+{
+  return QPixmap::fromImage(findVoting_);
 }
 
 QRect Detector::getImageSize()
@@ -114,6 +123,7 @@ void Detector::blurred()
   scene.addItem(&item);
   QPainter ptr(&img_);
   scene.render(&ptr, QRectF(), img_.rect());
+  findVoting_ = QImage();
 }
 
 void Detector::sobelEdges()
@@ -161,10 +171,7 @@ void Detector::sobelEdges()
         }
         sum = abs(sumX) + abs(sumY);
         sum = qMin(sum, 255);
-        double phi = atan2(sumY, sumX);
-        while (phi < 0) {
-          phi += M_PI;
-        }
+        double phi = atan2upperHalfPlane(sumY, sumX);
         // Angle is between 0 and 180 degrees, where 0 is E/W, 45 is NE/SW and 90 is N/S
         angle = qRound(qRadiansToDegrees(phi));
       }
@@ -176,6 +183,7 @@ void Detector::sobelEdges()
     }
   }
   img_ = res;
+  findVoting_ = QImage();
 }
 
 void Detector::generateRTable()
@@ -186,27 +194,100 @@ void Detector::generateRTable()
   int height(img_.height());
 
   // Assume the feature shape lies in the middle of the image
-  int cx = width/2;
-  int cy = height/2;
+  int xc = width/2;
+  int yc = height/2;
 
   int pixelColor;
-  int angle;
-  int distance;
+  int angleOfEdge;
+  double angleToEdge;
+  double distance;
 
   for (int y = 0; y < height; ++y) {
     for (int x = 0; x < width; ++x) {
-      pixelColor = qGray(img_.pixel(x, y));
-      if (pixelColor <= 0) {
-        // Black, not an edge
+      // Skip outermost border since we did so for the preparatory steps
+      if( y <= 0 || y >= height - 1 || x <= 0 || x >= width - 1 ) {
         continue;
+      } else {
+        pixelColor = qGray(img_.pixel(x, y));
+        if (pixelColor <= 0) {
+          // Black, not an edge
+          continue;
+        }
+        // Not black, add an item into the R-table
+        angleOfEdge = qGray(sobelAngles_.pixel(x, y));
+        distance = qSqrt(qPow(x - xc, 2) + qPow(y - yc, 2));
+        angleToEdge = atan2Positive(y - yc, x - xc);
+        rTable_.insert(angleOfEdge, QPair<double, double>(angleToEdge, distance));
       }
-      // Not black, add an item into the R-table
-      angle = qGray(sobelAngles_.pixel(x, y));
-      distance = qSqrt(qPow(x - cx, 2) + qPow(y - cy, 2));
-      rTable_.insert(angle, QPair<int, int>(angle, distance));
     }
   }
-  qDebug() << rTable_;
+//  qDebug() << rTable_;
+  findVoting_ = QImage();
+}
+
+void Detector::findObject()
+{
+  if (!findVoting_.isNull()) {
+    // Already have looked for the object.
+    return;
+  }
+
+  int width(img_.width());
+  int height(img_.height());
+
+  int accumulator[width][height];
+  memset(accumulator, 0, sizeof(accumulator[0][0]) * width * height);
+
+  int pixelColor;
+  int angle;
+
+  int xc, yc;
+
+  QPair<double, double> v;
+
+  for (int y = 0; y < height; ++y) {
+    for (int x = 0; x < width; ++x) {
+      // Skip outermost border since we did so for the preparatory steps
+      if( y <= 0 || y >= height - 1 || x <= 0 || x >= width - 1 ) {
+        continue;
+      } else {
+        pixelColor = qGray(img_.pixel(x, y));
+        if (pixelColor <= 0) {
+          // Black, not an edge
+          continue;
+        }
+        // Not black, check the R-table
+        angle = qGray(sobelAngles_.pixel(x, y));
+        foreach (v, rTable_.values(angle)) {
+          xc = qRound(x + v.second * cos(v.first));
+          yc = qRound(y + v.second * sin(v.first));
+          if (xc >= 0 && xc < width - 1 && yc >= 0 && yc < height - 1) {
+            (accumulator[xc][yc])++;
+          }
+        }
+      }
+    }
+  }
+
+  int max(0);
+//  QStringList dump;
+  for (int y = 0; y < height; ++y) {
+    for (int x = 0; x < width; ++x) {
+      max = qMax(accumulator[x][y], max);
+      //dump << QString::number(accumulator[x][y]);
+    }
+    //dump << "\n";
+  }
+  //qDebug() << dump;
+
+  findVoting_ = QImage(width, height, QImage::Format_RGB32);
+  int color;
+  for (int y = 0; y < height; ++y) {
+    for (int x = 0; x < width; ++x) {
+      color = qRound((double)accumulator[x][y]/max * 255);
+      findVoting_.setPixel(x, y, qRgb(color, color, color));
+    }
+  }
 }
 
 void Detector::edgeThinning()
