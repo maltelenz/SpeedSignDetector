@@ -132,8 +132,8 @@ void Detector::sobelEdges()
   QImage res(img_.size(), QImage::Format_RGB32);
   sobelAngles_ = QImage(img_.size(), QImage::Format_Grayscale8);
 
-  int width = img_.width();
-  int height = img_.height();
+  int width(img_.width());
+  int height(img_.height());
 
   int i, j;
   long sumX, sumY;
@@ -166,6 +166,9 @@ void Detector::sobelEdges()
         // Angle is between 0 and 180 degrees, where 0 is E/W, 45 is NE/SW and 90 is N/S
         angle = qRound(qRadiansToDegrees(phi));
       }
+      if (sum < LOWER_EDGE_THRESHOLD_) {
+        sum = 0;
+      }
       res.setPixel(x, y, qRgb(sum, sum, sum));
       sobelAngles_.setPixel(x, y, qRgb(angle, angle, angle));
     }
@@ -176,8 +179,8 @@ void Detector::sobelEdges()
 void Detector::edgeThinning()
 {
 
-  int width = img_.width();
-  int height = img_.height();
+  int width(img_.width());
+  int height(img_.height());
 
   int c1, c2, c3, c4;
   int cP, cN;

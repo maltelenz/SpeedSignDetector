@@ -31,6 +31,7 @@ private:
   QImage img_;
   QImage sobelAngles_;
   const QSize imgSize_;
+  static const int LOWER_EDGE_THRESHOLD_ = 100;
 
   int interpolate(int a, int b, int progress);
 };
