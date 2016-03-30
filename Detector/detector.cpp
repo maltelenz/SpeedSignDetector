@@ -253,9 +253,13 @@ void Detector::findObject()
   int width(img_.width());
   int height(img_.height());
 
-  int accumulator[width][height];
-  memset(accumulator, 0, sizeof(accumulator[0][0]) * width * height);
-
+  int* accumulator = (int*) calloc(width * height, sizeof(int));
+  if (accumulator == NULL) {
+    // Failed to allocate memory, abort nicely
+    issueMessage("Failed to allocate memory for the accumulator in Detector::findObject.");
+    timer_.invalidate();
+    return;
+  }
   int pixelColor;
   int angle;
 
@@ -280,7 +284,7 @@ void Detector::findObject()
           xc = qRound(x + v.second * cos(v.first));
           yc = qRound(y + v.second * sin(v.first));
           if (xc >= 0 && xc < width - 1 && yc >= 0 && yc < height - 1) {
-            (accumulator[xc][yc])++;
+            (accumulator[offset(xc, yc, width)])++;
           }
         }
       }
@@ -292,12 +296,12 @@ void Detector::findObject()
 //  QStringList dump;
   for (int y = 0; y < height; ++y) {
     for (int x = 0; x < width; ++x) {
-      if (accumulator[x][y] > max) {
-        max = accumulator[x][y];
+      if (accumulator[offset(x, y, width)] > max) {
+        max = accumulator[offset(x, y, width)];
         xmax = x;
         ymax = y;
       }
-      //dump << QString::number(accumulator[x][y]);
+      //dump << QString::number(accumulator[offset(x, y, width)]);
     }
     //dump << "\n";
   }
@@ -314,10 +318,11 @@ void Detector::findObject()
   int color;
   for (int y = 0; y < height; ++y) {
     for (int x = 0; x < width; ++x) {
-      color = qRound((double)accumulator[x][y]/max * 255);
+      color = qRound((double)accumulator[offset(x, y, width)]/max * 255);
       findVoting_.setPixel(x, y, qRgb(color, color, color));
     }
   }
+  free(accumulator);
   issueTimingMessage("Object detection");
 }
 
@@ -339,8 +344,13 @@ void Detector::findScaledObject()
                  SCALING_MIN_).arg(
                  SCALING_MAX_));
 
-  int accumulator[width][height][numberScalingSteps] = {0};
-
+  int* accumulator = (int*) calloc(width * height * numberScalingSteps, sizeof(int));
+  if (accumulator == NULL) {
+    // Failed to allocate memory, abort nicely
+    issueMessage("Failed to allocate memory for the accumulator in Detector::findScaledObject.");
+    timer_.invalidate();
+    return;
+  }
   int pixelColor;
   int angle;
 
@@ -370,7 +380,7 @@ void Detector::findScaledObject()
             xc = qRound(x - xcp * s * SCALING_STEP_);
             yc = qRound(y - ycp * s * SCALING_STEP_);
             if (xc >= 0 && xc < width - 1 && yc >= 0 && yc < height - 1) {
-              (accumulator[xc][yc][s - 1])++;
+              (accumulator[offset(xc, yc, s - 1, width, height)])++;
             }
           }
         }
@@ -385,8 +395,8 @@ void Detector::findScaledObject()
   for (int y = 0; y < height; ++y) {
     for (int x = 0; x < width; ++x) {
       for (int s = 0; s < numberScalingSteps; ++s) {
-        if (accumulator[x][y][s] > max) {
-          max = accumulator[x][y][s];
+        if (accumulator[offset(x, y, s, width, height)] > max) {
+          max = accumulator[offset(x, y, s, width, height)];
           xmax = x;
           ymax = y;
           smax = s * SCALING_STEP_;
@@ -411,11 +421,12 @@ void Detector::findScaledObject()
     for (int x = 0; x < width; ++x) {
       color = 0;
       for (int s = 0; s < numberScalingSteps; ++s) {
-        color = qMax(color, qRound((double)accumulator[x][y][s]/max * 255));
+        color = qMax(color, qRound((double)accumulator[offset(x, y, s, width, height)]/max * 255));
       }
       findVoting_.setPixel(x, y, qRgb(color, color, color));
     }
   }
+  free(accumulator);
   issueTimingMessage("Object detection");
 }
 
@@ -484,6 +495,16 @@ void Detector::edgeThinning()
 int Detector::interpolate(int a, int b, int progress)
 {
   return a + (a - b) * ((float) progress / 45);
+}
+
+int Detector::offset(int x, int y, int z, int xSize, int ySize)
+{
+  return (z * xSize * ySize) + (y * xSize) + x;
+}
+
+int Detector::offset(int x, int y, int xSize)
+{
+  return (y * xSize) + x;
 }
 
 void Detector::issueTimingMessage(QString message)

@@ -41,6 +41,8 @@ signals:
 
 private:
   int interpolate(int a, int b, int progress);
+  int offset(int x, int y, int z, int xSize, int ySize);
+  int offset(int x, int y, int xSize);
   void issueTimingMessage(QString message);
 
 private:
