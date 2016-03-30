@@ -25,11 +25,15 @@ Detector::Detector(QString file) :
 
 void Detector::loadImage()
 {
+  timer_.start();
+
   img_ = QImage(file_);
   if (img_.width() > imgSize_.width() || img_.height() > imgSize_.height()) {
     img_ = img_.scaled(imgSize_, Qt::KeepAspectRatio);
   }
   findVoting_ = QImage();
+
+  issueTimingMessage("Load image");
 }
 
 void Detector::loadImage(QString file)
@@ -111,6 +115,7 @@ QImage Detector::averageLines()
 
 void Detector::blurred()
 {
+  timer_.start();
   QGraphicsBlurEffect *blur = new QGraphicsBlurEffect;
   blur->setBlurRadius(2);
 
@@ -124,10 +129,12 @@ void Detector::blurred()
   QPainter ptr(&img_);
   scene.render(&ptr, QRectF(), img_.rect());
   findVoting_ = QImage();
+  issueTimingMessage("Blur");
 }
 
 void Detector::sobelEdges()
 {
+  timer_.start();
   // Sobel masks
   int gX[3][3] = {
       {-1, 0, 1},
@@ -184,10 +191,12 @@ void Detector::sobelEdges()
   }
   img_ = res;
   findVoting_ = QImage();
+  issueTimingMessage("Edge detection");
 }
 
 void Detector::generateRTable()
 {
+  timer_.start();
   rTable_.clear();
 
   int width(img_.width());
@@ -223,10 +232,12 @@ void Detector::generateRTable()
   }
 //  qDebug() << rTable_;
   findVoting_ = QImage();
+  issueTimingMessage("R-table generation");
 }
 
 void Detector::findObject()
 {
+  timer_.start();
   if (!findVoting_.isNull()) {
     // Already have looked for the object.
     return;
@@ -300,11 +311,12 @@ void Detector::findObject()
       findVoting_.setPixel(x, y, qRgb(color, color, color));
     }
   }
+  issueTimingMessage("Object detection");
 }
 
 void Detector::edgeThinning()
 {
-
+  timer_.start();
   int width(img_.width());
   int height(img_.height());
 
@@ -360,9 +372,16 @@ void Detector::edgeThinning()
     }
   }
   img_ = res;
+  issueTimingMessage("Edge thinning");
 }
 
 int Detector::interpolate(int a, int b, int progress)
 {
   return a + (a - b) * ((float) progress / 45);
+}
+
+void Detector::issueTimingMessage(QString message)
+{
+  issueTiming(QString("%1: %2 ms").arg(message).arg(QString::number(timer_.elapsed())));
+  timer_.invalidate();
 }

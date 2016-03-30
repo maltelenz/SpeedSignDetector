@@ -5,6 +5,7 @@
 #include <QString>
 #include <QImage>
 #include <QMultiMap>
+#include <QElapsedTimer>
 
 class Detector : public QObject
 {
@@ -34,6 +35,12 @@ public:
 
 signals:
   void issueMessage(QString message);
+  void issueTiming(QString message);
+
+
+private:
+  int interpolate(int a, int b, int progress);
+  void issueTimingMessage(QString message);
 
 private:
   QString file_;
@@ -46,7 +53,7 @@ private:
 
   static const int LOWER_EDGE_THRESHOLD_ = 100;
 
-  int interpolate(int a, int b, int progress);
+  QElapsedTimer timer_;
 };
 
 #endif // DETECTOR_H

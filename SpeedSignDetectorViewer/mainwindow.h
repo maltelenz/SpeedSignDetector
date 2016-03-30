@@ -44,6 +44,7 @@ private slots:
 
 public slots:
   void on_issueMessage(QString message);
+  void on_issueTiming(QString message);
 
 private:
   Ui::MainWindow *ui;

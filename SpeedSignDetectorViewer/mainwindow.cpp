@@ -19,6 +19,7 @@ MainWindow::MainWindow(QWidget *parent) :
   ui->statusBar->addPermanentWidget(statusLabel_);
 
   connect(&detector_, SIGNAL(issueMessage(QString)), this, SLOT(on_issueMessage(QString)));
+  connect(&detector_, SIGNAL(issueTiming(QString)), this, SLOT(on_issueTiming(QString)));
   on_issueMessage(QString("Startup successful."));
   on_issueMessage(QString("Open an image to start."));
 }
@@ -96,6 +97,11 @@ void MainWindow::on_mouseMoved(QPointF point)
 void MainWindow::on_issueMessage(QString message)
 {
   ui->messagesTextEdit->appendPlainText(message);
+}
+
+void MainWindow::on_issueTiming(QString message)
+{
+  ui->timingsTextEdit->appendPlainText(message);
 }
 
 void MainWindow::refetchImage()
