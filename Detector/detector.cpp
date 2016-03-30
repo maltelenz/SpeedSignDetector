@@ -270,15 +270,27 @@ void Detector::findObject()
   }
 
   int max(0);
+  int xmax, ymax;
 //  QStringList dump;
   for (int y = 0; y < height; ++y) {
     for (int x = 0; x < width; ++x) {
-      max = qMax(accumulator[x][y], max);
+      if (accumulator[x][y] > max) {
+        max = accumulator[x][y];
+        xmax = x;
+        ymax = y;
+      }
       //dump << QString::number(accumulator[x][y]);
     }
     //dump << "\n";
   }
   //qDebug() << dump;
+
+  issueMessage(
+        QString("Found max: %1").arg(QString::number(max)));
+  issueMessage(
+        QString("At (x, y): (%2, %3)").arg(
+          QString::number(xmax)).arg(
+          QString::number(ymax)));
 
   findVoting_ = QImage(width, height, QImage::Format_RGB32);
   int color;

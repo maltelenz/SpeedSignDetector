@@ -6,8 +6,9 @@
 #include <QImage>
 #include <QMultiMap>
 
-class Detector
+class Detector : public QObject
 {
+  Q_OBJECT
 
 public:
   Detector();
@@ -30,6 +31,9 @@ public:
 
   void generateRTable();
   void findObject();
+
+signals:
+  void issueMessage(QString message);
 
 private:
   QString file_;

@@ -42,6 +42,9 @@ private slots:
   void on_selectionReleased(QRectF rectf);
   void on_mouseMoved(QPointF point);
 
+public slots:
+  void on_issueMessage(QString message);
+
 private:
   Ui::MainWindow *ui;
 

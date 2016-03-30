@@ -17,6 +17,10 @@ MainWindow::MainWindow(QWidget *parent) :
 
   statusLabel_ = new QLabel("");
   ui->statusBar->addPermanentWidget(statusLabel_);
+
+  connect(&detector_, SIGNAL(issueMessage(QString)), this, SLOT(on_issueMessage(QString)));
+  on_issueMessage(QString("Startup successful."));
+  on_issueMessage(QString("Open an image to start."));
 }
 
 MainWindow::~MainWindow()
@@ -44,6 +48,7 @@ void MainWindow::on_actionLoad_Image_triggered()
   ui->actionReset->setEnabled(true);
   ui->actionBlur->setEnabled(true);
   ui->actionEdges->setEnabled(true);
+  ui->actionFind_Object->setChecked(false);
 
   connect(&scene_, SIGNAL(mouseReleased(QRectF)), this, SLOT(on_selectionReleased(QRectF)));
   connect(&scene_, SIGNAL(mouseMoved(QPointF)), this, SLOT(on_mouseMoved(QPointF)));
@@ -84,8 +89,13 @@ void MainWindow::on_selectionReleased(QRectF rectf)
 
 void MainWindow::on_mouseMoved(QPointF point)
 {
-  QString txt = QString("{%1, %2}").arg(QString::number(point.x()), QString::number(point.y()));
+  QString txt = QString("(%1, %2)").arg(QString::number(point.x()), QString::number(point.y()));
   statusLabel_->setText(txt);
+}
+
+void MainWindow::on_issueMessage(QString message)
+{
+  ui->messagesTextEdit->appendPlainText(message);
 }
 
 void MainWindow::refetchImage()
