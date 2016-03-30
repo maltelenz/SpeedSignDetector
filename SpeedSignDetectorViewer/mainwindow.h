@@ -11,6 +11,9 @@
 // Detector includes
 #include "detector.h"
 
+// Forward declarations
+class QLabel;
+
 namespace Ui {
 class MainWindow;
 }
@@ -25,33 +28,25 @@ public:
 
 private slots:
   void on_actionLoad_Image_triggered();
-
   void on_actionMean_Lines_toggled(bool on);
-
   void on_actionPainter_triggered(bool on);
+  void on_actionReset_triggered();
+  void on_actionBlur_triggered();
+  void on_actionEdges_triggered();
+  void on_actionShowAngles_triggered(bool on);
+  void on_actionEdge_Thinning_triggered();
+  void on_actionQuit_triggered();
+  void on_actionR_Table_triggered();
+  void on_actionFind_Object_triggered(bool on);
 
   void on_selectionReleased(QRectF rectf);
-
-  void on_actionReset_triggered();
-
-  void on_actionBlur_triggered();
-
-  void on_actionEdges_triggered();
-
-  void on_actionShowAngles_triggered(bool on);
-
-  void on_actionEdge_Thinning_triggered();
-
-  void on_actionQuit_triggered();
-
-  void on_actionR_Table_triggered();
-
-  void on_actionFind_Object_triggered(bool on);
+  void on_mouseMoved(QPointF point);
 
 private:
   Ui::MainWindow *ui;
 
   ImageScene scene_;
+  QLabel* statusLabel_;
 
   Detector detector_;
   void refetchImage();

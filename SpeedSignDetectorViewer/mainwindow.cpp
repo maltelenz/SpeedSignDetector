@@ -3,6 +3,7 @@
 
 // Qt Includes
 #include <QFileDialog>
+#include <QLabel>
 
 MainWindow::MainWindow(QWidget *parent) :
   QMainWindow(parent),
@@ -14,11 +15,14 @@ MainWindow::MainWindow(QWidget *parent) :
 
   ui->graphicsView->setScene(&scene_);
 
+  statusLabel_ = new QLabel("");
+  ui->statusBar->addPermanentWidget(statusLabel_);
 }
 
 MainWindow::~MainWindow()
 {
   delete ui;
+  delete statusLabel_;
 }
 
 void MainWindow::on_actionLoad_Image_triggered()
@@ -42,6 +46,7 @@ void MainWindow::on_actionLoad_Image_triggered()
   ui->actionEdges->setEnabled(true);
 
   connect(&scene_, SIGNAL(mouseReleased(QRectF)), this, SLOT(on_selectionReleased(QRectF)));
+  connect(&scene_, SIGNAL(mouseMoved(QPointF)), this, SLOT(on_mouseMoved(QPointF)));
 }
 
 void MainWindow::on_actionMean_Lines_toggled(bool on)
@@ -75,6 +80,12 @@ void MainWindow::on_selectionReleased(QRectF rectf)
   }
   QColor mean(detector_.averageSection(nr.left(), nr.top(), nr.right(), nr.bottom()));
   scene_.addRect(nr, QPen(mean), QBrush(mean));
+}
+
+void MainWindow::on_mouseMoved(QPointF point)
+{
+  QString txt = QString("{%1, %2}").arg(QString::number(point.x()), QString::number(point.y()));
+  statusLabel_->setText(txt);
 }
 
 void MainWindow::refetchImage()

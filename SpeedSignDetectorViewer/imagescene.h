@@ -17,6 +17,7 @@ protected:
 
 signals:
   void mouseReleased(QRectF selection);
+  void mouseMoved(QPointF pos);
 
 private:
   bool dragging_;

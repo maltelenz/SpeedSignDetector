@@ -30,6 +30,7 @@ void ImageScene::mousePressEvent(QGraphicsSceneMouseEvent *event)
 
 void ImageScene::mouseMoveEvent(QGraphicsSceneMouseEvent *event)
 {
+  emit mouseMoved(event->scenePos());
   if (selectionItem_) {
     selection_.setRight(event->scenePos().x());
     selection_.setBottom(event->scenePos().y());
