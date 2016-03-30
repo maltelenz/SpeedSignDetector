@@ -61,6 +61,7 @@
    <addaction name="actionEdge_Thinning"/>
    <addaction name="actionR_Table"/>
    <addaction name="actionFind_Object"/>
+   <addaction name="actionFind_Scaled_Objects"/>
   </widget>
   <widget class="QStatusBar" name="statusBar"/>
   <widget class="QDockWidget" name="messagesDock">
@@ -226,6 +227,14 @@
    </property>
    <property name="text">
     <string>Find Object</string>
+   </property>
+  </action>
+  <action name="actionFind_Scaled_Objects">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>Find Scaled Objects</string>
    </property>
   </action>
  </widget>

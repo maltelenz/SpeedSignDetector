@@ -42,6 +42,8 @@ private slots:
   void on_selectionReleased(QRectF rectf);
   void on_mouseMoved(QPointF point);
 
+  void on_actionFind_Scaled_Objects_triggered(bool on);
+
 public slots:
   void on_issueMessage(QString message);
   void on_issueTiming(QString message);

@@ -33,6 +33,8 @@ void Detector::loadImage()
   }
   findVoting_ = QImage();
 
+  issueMessage(QString("Loaded image with size: (%1, %2)").arg(img_.width()).arg(img_.height()));
+
   issueTimingMessage("Load image");
 }
 
@@ -67,6 +69,11 @@ QColor Detector::averageSection(int xStart, int yStart, int xStop, int yStop)
   int red(0);
   int green(0);
   int blue(0);
+
+  if (yStart >= yStop || xStart >= xStop) {
+    // Cannot do operations on negative rectangle
+    return QColor();
+  }
 
   for (int lineNumber = yStart; lineNumber <= yStop; lineNumber++) {
     const uchar* byte = img_.constScanLine(lineNumber);
@@ -299,7 +306,7 @@ void Detector::findObject()
   issueMessage(
         QString("Found max: %1").arg(QString::number(max)));
   issueMessage(
-        QString("At (x, y): (%2, %3)").arg(
+        QString("At (x, y): (%1, %2)").arg(
           QString::number(xmax)).arg(
           QString::number(ymax)));
 
@@ -313,6 +320,105 @@ void Detector::findObject()
   }
   issueTimingMessage("Object detection");
 }
+
+
+void Detector::findScaledObject()
+{
+  timer_.start();
+  if (!findVoting_.isNull()) {
+    // Already have looked for the object.
+    return;
+  }
+
+  int width(img_.width());
+  int height(img_.height());
+  int numberScalingSteps(qCeil((SCALING_MAX_ - SCALING_MIN_) / SCALING_STEP_));
+
+  issueMessage(QString("Finding objects with %1 scalings from %2 to %3.").arg(
+                 numberScalingSteps).arg(
+                 SCALING_MIN_).arg(
+                 SCALING_MAX_));
+
+  int accumulator[width][height][numberScalingSteps] = {0};
+
+  int pixelColor;
+  int angle;
+
+  double xcp, ycp;
+  int xc, yc;
+
+  QPair<double, double> v;
+
+  for (int y = 0; y < height; ++y) {
+    for (int x = 0; x < width; ++x) {
+      // Skip outermost border since we did so for the preparatory steps
+      if( y <= 0 || y >= height - 1 || x <= 0 || x >= width - 1 ) {
+        continue;
+      } else {
+        pixelColor = qGray(img_.pixel(x, y));
+        if (pixelColor <= 0) {
+          // Black, not an edge
+          continue;
+        }
+        // Not black, check the R-table
+        angle = qGray(sobelAngles_.pixel(x, y));
+        foreach (v, rTable_.values(angle)) {
+          xcp = v.second * cos(v.first);
+          ycp = v.second * sin(v.first);
+          for (int s = 1; s <= numberScalingSteps; ++s) {
+
+            xc = qRound(x - xcp * s * SCALING_STEP_);
+            yc = qRound(y - ycp * s * SCALING_STEP_);
+            if (xc >= 0 && xc < width - 1 && yc >= 0 && yc < height - 1) {
+              (accumulator[xc][yc][s - 1])++;
+            }
+          }
+        }
+      }
+    }
+  }
+
+  int max(0);
+  int xmax, ymax;
+  double smax;
+//  QStringList dump;
+  for (int y = 0; y < height; ++y) {
+    for (int x = 0; x < width; ++x) {
+      for (int s = 0; s < numberScalingSteps; ++s) {
+        if (accumulator[x][y][s] > max) {
+          max = accumulator[x][y][s];
+          xmax = x;
+          ymax = y;
+          smax = s * SCALING_STEP_;
+        }
+//        dump << QString::number(accumulator[x][y][s]);
+      }
+    }
+  }
+//  qDebug() << dump;
+
+  issueMessage(
+        QString("Found max: %1").arg(QString::number(max)));
+  issueMessage(
+        QString("At (x, y, s): (%1, %2, %3)").arg(
+          QString::number(xmax)).arg(
+          QString::number(ymax)).arg(
+          QString::number(smax)));
+
+  findVoting_ = QImage(width, height, QImage::Format_RGB32);
+  int color;
+  for (int y = 0; y < height; ++y) {
+    for (int x = 0; x < width; ++x) {
+      color = 0;
+      for (int s = 0; s < numberScalingSteps; ++s) {
+        color = qMax(color, qRound((double)accumulator[x][y][s]/max * 255));
+      }
+      findVoting_.setPixel(x, y, qRgb(color, color, color));
+    }
+  }
+  issueTimingMessage("Object detection");
+}
+
 
 void Detector::edgeThinning()
 {

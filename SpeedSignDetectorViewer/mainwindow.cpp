@@ -171,3 +171,14 @@ void MainWindow::on_actionFind_Object_triggered(bool on)
     refetchImage();
   }
 }
+
+void MainWindow::on_actionFind_Scaled_Objects_triggered(bool on)
+{
+  detector_.findScaledObject();
+  if (on) {
+    scene_.clear();
+    scene_.addPixmap(detector_.getObjectHeatmapPixmap());
+  } else {
+    refetchImage();
+  }
+}
