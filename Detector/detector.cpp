@@ -337,7 +337,7 @@ void Detector::findScaledObject()
 
   int width(img_.width());
   int height(img_.height());
-  int numberScalingSteps(qCeil((SCALING_MAX_ - SCALING_MIN_) / SCALING_STEP_));
+  int numberScalingSteps(qCeil((SCALING_MAX_ - SCALING_MIN_) / SCALING_STEP_) + 1);
 
   issueMessage(QString("Finding objects with %1 scalings from %2 to %3.").arg(
                  numberScalingSteps).arg(
@@ -377,8 +377,8 @@ void Detector::findScaledObject()
           ycp = v.second * sin(v.first);
           for (int s = 1; s <= numberScalingSteps; ++s) {
 
-            xc = qRound(x - xcp * s * SCALING_STEP_);
-            yc = qRound(y - ycp * s * SCALING_STEP_);
+            xc = qRound(x + xcp * s * SCALING_STEP_);
+            yc = qRound(y + ycp * s * SCALING_STEP_);
             if (xc >= 0 && xc < width - 1 && yc >= 0 && yc < height - 1) {
               (accumulator[offset(xc, yc, s - 1, width, height)])++;
             }

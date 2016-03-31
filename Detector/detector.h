@@ -55,9 +55,9 @@ private:
   const QSize imgSize_;
 
   static const int LOWER_EDGE_THRESHOLD_ = 100;
-  static const double SCALING_MAX_ = 1;
+  static const double SCALING_MAX_ = 0.7;
   static const double SCALING_MIN_ = 0.1;
-  static const double SCALING_STEP_ = 0.1;
+  static const double SCALING_STEP_ = 0.05;
 
   QElapsedTimer timer_;
 };
