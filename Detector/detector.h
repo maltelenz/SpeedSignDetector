@@ -7,6 +7,9 @@
 #include <QMultiMap>
 #include <QElapsedTimer>
 
+// Detector Includes
+#include "array2d.h"
+
 class Detector : public QObject
 {
   Q_OBJECT
@@ -49,14 +52,13 @@ private:
 private:
   QString file_;
   QImage img_;
-  QImage sobelAngles_;
+  Array2D sobelAngles_;
   QImage findVoting_;
   QMultiMap<int, QPair<double, double> > rTable_;
   QSize trainingSize_;
 
   const QSize imgSize_;
 
-  static const int LOWER_EDGE_THRESHOLD_ = 100;
   static const double SCALING_MAX_ = 0.7;
   static const double SCALING_MIN_ = 0.1;
   static const double SCALING_STEP_ = 0.05;

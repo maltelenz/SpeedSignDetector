@@ -51,7 +51,19 @@ QPixmap Detector::getPixmap()
 
 QPixmap Detector::getSobelAnglePixmap()
 {
-  return QPixmap::fromImage(sobelAngles_);
+  int width(sobelAngles_.xSize());
+  int height(sobelAngles_.ySize());
+
+  QImage angleImage(width, height, QImage::Format_RGB32);
+  int color;
+
+  for (int y = 0; y < height; ++y) {
+    for (int x = 0; x < width; ++x) {
+      color = sobelAngles_.get(x, y);
+      angleImage.setPixel(x, y, qRgb(color, color, color));
+    }
+  }
+  return QPixmap::fromImage(angleImage);
 }
 
 QPixmap Detector::getObjectHeatmapPixmap()
@@ -128,10 +140,16 @@ void Detector::sobelEdges(int lowerEdgeThreshold)
   };
 
   QImage res(img_.size(), QImage::Format_RGB32);
-  sobelAngles_ = QImage(img_.size(), QImage::Format_Grayscale8);
 
   int width(img_.width());
   int height(img_.height());
+
+  if (!sobelAngles_.init(width, height)) {
+    // Failed to allocate memory, abort nicely
+    issueMessage("Failed to allocate memory for the sobelAngles_ in Detector::sobelEdges.");
+    timer_.invalidate();
+    return;
+  }
 
   int i, j;
   long sumX, sumY;
@@ -155,7 +173,7 @@ void Detector::sobelEdges(int lowerEdgeThreshold)
            sumY += qGray(color) * gY[i + 1][j + 1];
           }
         }
-        sum = abs(sumX) + abs(sumY);
+        sum = qAbs(sumX) + qAbs(sumY);
         sum = qMin(sum, 255);
         double phi = atan2upperHalfPlane(sumY, sumX);
         // Angle is between 0 and 180 degrees, where 0 is E/W, 45 is NE/SW and 90 is N/S
@@ -165,7 +183,7 @@ void Detector::sobelEdges(int lowerEdgeThreshold)
         sum = 0;
       }
       res.setPixel(x, y, qRgb(sum, sum, sum));
-      sobelAngles_.setPixel(x, y, qRgb(angle, angle, angle));
+      sobelAngles_.set(x, y, angle);
     }
   }
   img_ = res;
@@ -202,7 +220,7 @@ void Detector::generateRTable()
           continue;
         }
         // Not black, add an item into the R-table
-        angleOfEdge = qGray(sobelAngles_.pixel(x, y));
+        angleOfEdge = qGray(sobelAngles_.get(x, y));
         distance = qSqrt(qPow(x - xc, 2) + qPow(y - yc, 2));
         angleToEdge = atan2Positive(y - yc, x - xc);
         rTable_.insert(angleOfEdge, QPair<double, double>(angleToEdge, distance));
@@ -240,6 +258,8 @@ void Detector::findObject(bool createImage)
 
   QPair<double, double> v;
 
+  issuePartialTimingMessage("--Allocated datastructures");
+
   for (int y = 0; y < height; ++y) {
     for (int x = 0; x < width; ++x) {
       // Skip outermost border since we did so for the preparatory steps
@@ -252,8 +272,10 @@ void Detector::findObject(bool createImage)
           continue;
         }
         // Not black, check the R-table
-        angle = qGray(sobelAngles_.pixel(x, y));
-        foreach (v, rTable_.values(angle)) {
+        angle = qGray(sobelAngles_.get(x, y));
+        QList<QPair<double, double> > values = rTable_.values(angle);
+        for (int i = 0; i < values.size(); ++i) {
+          v = values.at(i);
           xc = qRound(x + v.second * cos(v.first));
           yc = qRound(y + v.second * sin(v.first));
           if (xc >= 0 && xc < width - 1 && yc >= 0 && yc < height - 1) {
@@ -263,6 +285,8 @@ void Detector::findObject(bool createImage)
       }
     }
   }
+
+  issuePartialTimingMessage("--Voted");
 
   int max(0);
   int xmax, ymax;
@@ -296,6 +320,8 @@ void Detector::findObject(bool createImage)
             max
           );
 
+  issuePartialTimingMessage("--Located max");
+
   if (createImage) {
     findVoting_ = QImage(width, height, QImage::Format_RGB32);
     int color;
@@ -305,6 +331,7 @@ void Detector::findObject(bool createImage)
         findVoting_.setPixel(x, y, qRgb(color, color, color));
       }
     }
+    issuePartialTimingMessage("--Created image");
   }
 
   free(accumulator);
@@ -336,7 +363,7 @@ void Detector::findScaledObject(bool createImage)
     timer_.invalidate();
     return;
   }
-  int pixelColor;
+  QRgb pixelColor;
   int angle;
 
   double xcp, ycp;
@@ -344,19 +371,20 @@ void Detector::findScaledObject(bool createImage)
 
   QPair<double, double> v;
   issuePartialTimingMessage("Allocated datastructures");
+
   for (int y = 0; y < height; ++y) {
+    const QRgb* line = (const QRgb *)img_.constScanLine(y);
     for (int x = 0; x < width; ++x) {
-      // Skip outermost border since we did so for the preparatory steps
       if( y <= 0 || y >= height - 1 || x <= 0 || x >= width - 1 ) {
         continue;
       } else {
-        pixelColor = qGray(img_.pixel(x, y));
-        if (pixelColor <= 0) {
+        pixelColor = line[x];
+        if (qGray(pixelColor) == 0) {
           // Black, not an edge
           continue;
         }
         // Not black, check the R-table
-        angle = qGray(sobelAngles_.pixel(x, y));
+        angle = qGray(sobelAngles_.get(x, y));
         foreach (v, rTable_.values(angle)) {
           xcp = v.second * cos(v.first);
           ycp = v.second * sin(v.first);
@@ -372,6 +400,36 @@ void Detector::findScaledObject(bool createImage)
       }
     }
   }
+
+
+//  for (int y = 0; y < height; ++y) {
+//    for (int x = 0; x < width; ++x) {
+//      // Skip outermost border since we did so for the preparatory steps
+//      if( y <= 0 || y >= height - 1 || x <= 0 || x >= width - 1 ) {
+//        continue;
+//      } else {
+//        pixelColor = qGray(img_.pixel(x, y));
+//        if (pixelColor <= 0) {
+//          // Black, not an edge
+//          continue;
+//        }
+//        // Not black, check the R-table
+//        angle = qGray(sobelAngles_.pixel(x, y));
+//        foreach (v, rTable_.values(angle)) {
+//          xcp = v.second * cos(v.first);
+//          ycp = v.second * sin(v.first);
+//          for (int s = 0; s < numberScalingSteps; ++s) {
+
+//            xc = qRound(x + xcp * (s + 1) * SCALING_STEP_);
+//            yc = qRound(y + ycp * (s + 1) * SCALING_STEP_);
+//            if (xc >= 0 && xc < width - 1 && yc >= 0 && yc < height - 1) {
+//              (accumulator[offset(xc, yc, s, width, height)])++;
+//            }
+//          }
+//        }
+//      }
+//    }
+//  }
   issuePartialTimingMessage("Voted");
 
   int max(0);
@@ -458,7 +516,7 @@ void Detector::edgeThinning()
         continue;
       }
 
-      angle = qGray(sobelAngles_.pixel(x, y));
+      angle = qGray(sobelAngles_.get(x, y));
       if (angle <= 45) {
         c1 = qGray(img_.pixel(x, y - 1));
         c2 = qGray(img_.pixel(x, y + 1));
