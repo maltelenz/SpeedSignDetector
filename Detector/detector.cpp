@@ -92,34 +92,6 @@ QColor Detector::averageSection(int xStart, int yStart, int xStop, int yStop)
   return QColor(red, green, blue);
 }
 
-QImage Detector::averageLines()
-{
-  QImage meanImg(1, img_.height(), QImage::Format_RGB32);
-
-  int bytesPerLine(img_.bytesPerLine());
-  int lines(img_.height());
-  for (int lineNumber = 0; lineNumber <= lines; lineNumber++) {
-    const uchar* byte = img_.constScanLine(lineNumber);
-    int red(0);
-    int green(0);
-    int blue(0);
-    for (int columnNumber = 0; columnNumber < bytesPerLine; columnNumber++) {
-      const QRgb* rgb = (const QRgb*) byte + columnNumber;
-      red += qRed(*rgb);
-      green += qGreen(*rgb);
-      blue += qBlue(*rgb);
-    }
-    red = red/bytesPerLine;
-    green = green/bytesPerLine;
-    blue = blue/bytesPerLine;
-    QRgb* rowLine = (QRgb*) meanImg.scanLine(lineNumber);
-    *rowLine = qRgb(red, green, blue);
-  }
-  meanImg = meanImg.scaled(img_.width(), img_.height(), Qt::IgnoreAspectRatio);
-
-  return meanImg;
-}
-
 void Detector::blurred()
 {
   timer_.start();
@@ -239,6 +211,7 @@ void Detector::generateRTable()
   }
 //  qDebug() << rTable_;
   findVoting_ = QImage();
+  trainingSize_ = img_.size();
   issueTimingMessage("R-table generation");
 }
 
@@ -314,6 +287,15 @@ void Detector::findObject()
           QString::number(xmax)).arg(
           QString::number(ymax)));
 
+  emit itemFound(QRect(
+              xmax - trainingSize_.width() / 2,
+              ymax - trainingSize_.height() / 2,
+              trainingSize_.width(),
+              trainingSize_.height()
+            ),
+            max
+          );
+
   findVoting_ = QImage(width, height, QImage::Format_RGB32);
   int color;
   for (int y = 0; y < height; ++y) {
@@ -375,12 +357,12 @@ void Detector::findScaledObject()
         foreach (v, rTable_.values(angle)) {
           xcp = v.second * cos(v.first);
           ycp = v.second * sin(v.first);
-          for (int s = 1; s <= numberScalingSteps; ++s) {
+          for (int s = 0; s < numberScalingSteps; ++s) {
 
-            xc = qRound(x + xcp * s * SCALING_STEP_);
-            yc = qRound(y + ycp * s * SCALING_STEP_);
+            xc = qRound(x + xcp * (s + 1) * SCALING_STEP_);
+            yc = qRound(y + ycp * (s + 1) * SCALING_STEP_);
             if (xc >= 0 && xc < width - 1 && yc >= 0 && yc < height - 1) {
-              (accumulator[offset(xc, yc, s - 1, width, height)])++;
+              (accumulator[offset(xc, yc, s, width, height)])++;
             }
           }
         }
@@ -399,7 +381,7 @@ void Detector::findScaledObject()
           max = accumulator[offset(x, y, s, width, height)];
           xmax = x;
           ymax = y;
-          smax = s * SCALING_STEP_;
+          smax = (s + 1) * SCALING_STEP_;
         }
 //        dump << QString::number(accumulator[x][y][s]);
       }
@@ -414,6 +396,17 @@ void Detector::findScaledObject()
           QString::number(xmax)).arg(
           QString::number(ymax)).arg(
           QString::number(smax)));
+
+  int foundWidth(smax * trainingSize_.width());
+  int foundHeight(smax * trainingSize_.height());
+  emit itemFound(QRect(
+              xmax - foundWidth / 2,
+              ymax - foundHeight / 2,
+              foundWidth,
+              foundHeight
+            ),
+            max
+          );
 
   findVoting_ = QImage(width, height, QImage::Format_RGB32);
   int color;

@@ -52,8 +52,6 @@
    <attribute name="toolBarBreak">
     <bool>false</bool>
    </attribute>
-   <addaction name="actionMean_Lines"/>
-   <addaction name="actionPainter"/>
    <addaction name="actionReset"/>
    <addaction name="actionBlur"/>
    <addaction name="actionEdges"/>
@@ -111,34 +109,6 @@
    </property>
    <property name="shortcut">
     <string>Ctrl+O</string>
-   </property>
-  </action>
-  <action name="actionMean_Lines">
-   <property name="checkable">
-    <bool>true</bool>
-   </property>
-   <property name="enabled">
-    <bool>false</bool>
-   </property>
-   <property name="text">
-    <string>Mean Lines</string>
-   </property>
-   <property name="toolTip">
-    <string>Mean of every line</string>
-   </property>
-  </action>
-  <action name="actionPainter">
-   <property name="checkable">
-    <bool>true</bool>
-   </property>
-   <property name="enabled">
-    <bool>false</bool>
-   </property>
-   <property name="text">
-    <string>Painter</string>
-   </property>
-   <property name="toolTip">
-    <string>Paint Rectangle</string>
    </property>
   </action>
   <action name="actionReset">

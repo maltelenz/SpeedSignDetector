@@ -4,6 +4,8 @@
 // Qt Includes
 #include <QFileDialog>
 #include <QLabel>
+#include <QDebug>
+#include <QGraphicsTextItem>
 
 MainWindow::MainWindow(QWidget *parent) :
   QMainWindow(parent),
@@ -20,6 +22,8 @@ MainWindow::MainWindow(QWidget *parent) :
 
   connect(&detector_, SIGNAL(issueMessage(QString)), this, SLOT(on_issueMessage(QString)));
   connect(&detector_, SIGNAL(issueTiming(QString)), this, SLOT(on_issueTiming(QString)));
+  connect(&detector_, SIGNAL(itemFound(QRect, int)), this, SLOT(on_itemFound(QRect, int)));
+
   on_issueMessage(QString("Startup successful."));
   on_issueMessage(QString("Open an image to start."));
 }
@@ -44,8 +48,6 @@ void MainWindow::on_actionLoad_Image_triggered()
   scene_.addPixmap(detector_.getPixmap());
   scene_.setSceneRect(detector_.getImageSize());
 
-  ui->actionMean_Lines->setEnabled(true);
-  ui->actionPainter->setEnabled(true);
   ui->actionReset->setEnabled(true);
   ui->actionBlur->setEnabled(true);
   ui->actionEdges->setEnabled(true);
@@ -53,23 +55,6 @@ void MainWindow::on_actionLoad_Image_triggered()
 
   connect(&scene_, SIGNAL(mouseReleased(QRectF)), this, SLOT(on_selectionReleased(QRectF)));
   connect(&scene_, SIGNAL(mouseMoved(QPointF)), this, SLOT(on_mouseMoved(QPointF)));
-}
-
-void MainWindow::on_actionMean_Lines_toggled(bool on)
-{
-  scene_.clear();
-  if (on) {
-    scene_.addPixmap(QPixmap::fromImage(detector_.averageLines()));
-  } else {
-    scene_.addPixmap(detector_.getPixmap());
-  }
-}
-
-void MainWindow::on_actionPainter_triggered(bool on)
-{
-  if (!on) {
-  } else {
-  }
 }
 
 void MainWindow::on_selectionReleased(QRectF rectf)
@@ -102,6 +87,18 @@ void MainWindow::on_issueMessage(QString message)
 void MainWindow::on_issueTiming(QString message)
 {
   ui->timingsTextEdit->appendPlainText(message);
+}
+
+void MainWindow::on_itemFound(QRect position, int confidence)
+{
+  QColor c(0, 150, 0);
+  scene_.addRect(position, QPen(c));
+  QGraphicsTextItem* ctext = scene_.addText(QString::number(confidence));
+  ctext->setPos(position.topLeft());
+  ctext->setDefaultTextColor(c);
+  QFont f;
+  f.setBold(true);
+  ctext->setFont(f);
 }
 
 void MainWindow::refetchImage()
@@ -176,8 +173,8 @@ void MainWindow::on_actionFind_Scaled_Objects_triggered(bool on)
 {
   detector_.findScaledObject();
   if (on) {
-    scene_.clear();
-    scene_.addPixmap(detector_.getObjectHeatmapPixmap());
+//    scene_.clear();
+//    scene_.addPixmap(detector_.getObjectHeatmapPixmap());
   } else {
     refetchImage();
   }

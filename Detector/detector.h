@@ -24,7 +24,6 @@ public:
 
   QRect getImageSize();
 
-  QImage averageLines();
   QColor averageSection(int xStart, int yStart, int xStop, int yStop);
   void blurred();
   void sobelEdges();
@@ -37,6 +36,7 @@ public:
 signals:
   void issueMessage(QString message);
   void issueTiming(QString message);
+  void itemFound(QRect position, int confidence);
 
 
 private:
@@ -51,6 +51,7 @@ private:
   QImage sobelAngles_;
   QImage findVoting_;
   QMultiMap<int, QPair<double, double> > rTable_;
+  QSize trainingSize_;
 
   const QSize imgSize_;
 

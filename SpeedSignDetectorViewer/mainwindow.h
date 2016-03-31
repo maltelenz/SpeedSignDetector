@@ -28,8 +28,6 @@ public:
 
 private slots:
   void on_actionLoad_Image_triggered();
-  void on_actionMean_Lines_toggled(bool on);
-  void on_actionPainter_triggered(bool on);
   void on_actionReset_triggered();
   void on_actionBlur_triggered();
   void on_actionEdges_triggered();
@@ -47,6 +45,7 @@ private slots:
 public slots:
   void on_issueMessage(QString message);
   void on_issueTiming(QString message);
+  void on_itemFound(QRect position, int confidence);
 
 private:
   Ui::MainWindow *ui;
