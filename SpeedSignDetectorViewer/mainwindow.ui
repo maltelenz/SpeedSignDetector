@@ -103,6 +103,35 @@
     </layout>
    </widget>
   </widget>
+  <widget class="QDockWidget" name="dockWidget">
+   <property name="features">
+    <set>QDockWidget::NoDockWidgetFeatures</set>
+   </property>
+   <attribute name="dockWidgetArea">
+    <number>2</number>
+   </attribute>
+   <widget class="QWidget" name="dockWidgetContents_2">
+    <layout class="QGridLayout" name="gridLayout_3">
+     <item row="0" column="1">
+      <layout class="QVBoxLayout" name="verticalLayout">
+       <item>
+        <widget class="QSlider" name="lowerThreshold">
+         <property name="maximum">
+          <number>255</number>
+         </property>
+         <property name="value">
+          <number>100</number>
+         </property>
+         <property name="orientation">
+          <enum>Qt::Vertical</enum>
+         </property>
+        </widget>
+       </item>
+      </layout>
+     </item>
+    </layout>
+   </widget>
+  </widget>
   <action name="actionLoad_Image">
    <property name="text">
     <string>Load Image...</string>
@@ -189,9 +218,6 @@
    </property>
   </action>
   <action name="actionFind_Object">
-   <property name="checkable">
-    <bool>true</bool>
-   </property>
    <property name="enabled">
     <bool>false</bool>
    </property>
@@ -200,9 +226,6 @@
    </property>
   </action>
   <action name="actionFind_Scaled_Objects">
-   <property name="checkable">
-    <bool>true</bool>
-   </property>
    <property name="text">
     <string>Find Scaled Objects</string>
    </property>

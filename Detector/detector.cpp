@@ -111,7 +111,7 @@ void Detector::blurred()
   issueTimingMessage("Blur");
 }
 
-void Detector::sobelEdges()
+void Detector::sobelEdges(int lowerEdgeThreshold)
 {
   timer_.start();
   // Sobel masks
@@ -161,7 +161,7 @@ void Detector::sobelEdges()
         // Angle is between 0 and 180 degrees, where 0 is E/W, 45 is NE/SW and 90 is N/S
         angle = qRound(qRadiansToDegrees(phi));
       }
-      if (sum < LOWER_EDGE_THRESHOLD_) {
+      if (sum < lowerEdgeThreshold) {
         sum = 0;
       }
       res.setPixel(x, y, qRgb(sum, sum, sum));
@@ -215,7 +215,7 @@ void Detector::generateRTable()
   issueTimingMessage("R-table generation");
 }
 
-void Detector::findObject()
+void Detector::findObject(bool createImage)
 {
   timer_.start();
   if (!findVoting_.isNull()) {
@@ -296,20 +296,23 @@ void Detector::findObject()
             max
           );
 
-  findVoting_ = QImage(width, height, QImage::Format_RGB32);
-  int color;
-  for (int y = 0; y < height; ++y) {
-    for (int x = 0; x < width; ++x) {
-      color = qRound((double)accumulator[offset(x, y, width)]/max * 255);
-      findVoting_.setPixel(x, y, qRgb(color, color, color));
+  if (createImage) {
+    findVoting_ = QImage(width, height, QImage::Format_RGB32);
+    int color;
+    for (int y = 0; y < height; ++y) {
+      for (int x = 0; x < width; ++x) {
+        color = qRound((double)accumulator[offset(x, y, width)]/max * 255);
+        findVoting_.setPixel(x, y, qRgb(color, color, color));
+      }
     }
   }
+
   free(accumulator);
   issueTimingMessage("Object detection");
 }
 
 
-void Detector::findScaledObject()
+void Detector::findScaledObject(bool createImage)
 {
   timer_.start();
   if (!findVoting_.isNull()) {
@@ -340,7 +343,7 @@ void Detector::findScaledObject()
   int xc, yc;
 
   QPair<double, double> v;
-
+  issuePartialTimingMessage("Allocated datastructures");
   for (int y = 0; y < height; ++y) {
     for (int x = 0; x < width; ++x) {
       // Skip outermost border since we did so for the preparatory steps
@@ -369,6 +372,7 @@ void Detector::findScaledObject()
       }
     }
   }
+  issuePartialTimingMessage("Voted");
 
   int max(0);
   int xmax, ymax;
@@ -388,6 +392,7 @@ void Detector::findScaledObject()
     }
   }
 //  qDebug() << dump;
+  issuePartialTimingMessage("Isolated max");
 
   issueMessage(
         QString("Found max: %1").arg(QString::number(max)));
@@ -408,17 +413,21 @@ void Detector::findScaledObject()
             max
           );
 
-  findVoting_ = QImage(width, height, QImage::Format_RGB32);
-  int color;
-  for (int y = 0; y < height; ++y) {
-    for (int x = 0; x < width; ++x) {
-      color = 0;
-      for (int s = 0; s < numberScalingSteps; ++s) {
-        color = qMax(color, qRound((double)accumulator[offset(x, y, s, width, height)]/max * 255));
+  if (createImage) {
+    findVoting_ = QImage(width, height, QImage::Format_RGB32);
+    int color;
+    for (int y = 0; y < height; ++y) {
+      for (int x = 0; x < width; ++x) {
+        color = 0;
+        for (int s = 0; s < numberScalingSteps; ++s) {
+          color = qMax(color, qRound((double)accumulator[offset(x, y, s, width, height)]/max * 255));
+        }
+        findVoting_.setPixel(x, y, qRgb(color, color, color));
       }
-      findVoting_.setPixel(x, y, qRgb(color, color, color));
     }
+    issuePartialTimingMessage("Built result image");
   }
+
   free(accumulator);
   issueTimingMessage("Object detection");
 }
@@ -504,4 +513,9 @@ void Detector::issueTimingMessage(QString message)
 {
   issueTiming(QString("%1: %2 ms").arg(message).arg(QString::number(timer_.elapsed())));
   timer_.invalidate();
+}
+
+void Detector::issuePartialTimingMessage(QString message)
+{
+  issueTiming(QString("-- %1: %2 ms").arg(message).arg(QString::number(timer_.elapsed())));
 }

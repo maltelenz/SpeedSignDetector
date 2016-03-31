@@ -124,7 +124,7 @@ void MainWindow::on_actionBlur_triggered()
 
 void MainWindow::on_actionEdges_triggered()
 {
-  detector_.sobelEdges();
+  detector_.sobelEdges(ui->lowerThreshold->value());
   ui->actionShowAngles->setEnabled(true);
   ui->actionEdge_Thinning->setEnabled(true);
   ui->actionR_Table->setEnabled(true);
@@ -158,24 +158,18 @@ void MainWindow::on_actionQuit_triggered()
   QCoreApplication::quit();
 }
 
-void MainWindow::on_actionFind_Object_triggered(bool on)
+void MainWindow::on_actionFind_Object_triggered()
 {
+  // Do edge detection
+  on_actionEdges_triggered();
+  // Find the object
   detector_.findObject();
-  if (on) {
-    scene_.clear();
-    scene_.addPixmap(detector_.getObjectHeatmapPixmap());
-  } else {
-    refetchImage();
-  }
 }
 
-void MainWindow::on_actionFind_Scaled_Objects_triggered(bool on)
+void MainWindow::on_actionFind_Scaled_Objects_triggered()
 {
+  // Do edge detection
+  on_actionEdges_triggered();
+  // Find the object
   detector_.findScaledObject();
-  if (on) {
-//    scene_.clear();
-//    scene_.addPixmap(detector_.getObjectHeatmapPixmap());
-  } else {
-    refetchImage();
-  }
 }

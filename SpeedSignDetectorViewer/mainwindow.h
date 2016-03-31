@@ -35,12 +35,11 @@ private slots:
   void on_actionEdge_Thinning_triggered();
   void on_actionQuit_triggered();
   void on_actionR_Table_triggered();
-  void on_actionFind_Object_triggered(bool on);
+  void on_actionFind_Object_triggered();
+  void on_actionFind_Scaled_Objects_triggered();
 
   void on_selectionReleased(QRectF rectf);
   void on_mouseMoved(QPointF point);
-
-  void on_actionFind_Scaled_Objects_triggered(bool on);
 
 public slots:
   void on_issueMessage(QString message);

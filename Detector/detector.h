@@ -26,12 +26,12 @@ public:
 
   QColor averageSection(int xStart, int yStart, int xStop, int yStop);
   void blurred();
-  void sobelEdges();
+  void sobelEdges(int lowerEdgeThreshold);
   void edgeThinning();
 
   void generateRTable();
-  void findObject();
-  void findScaledObject();
+  void findObject(bool createImage = false);
+  void findScaledObject(bool createImage = false);
 
 signals:
   void issueMessage(QString message);
@@ -44,6 +44,7 @@ private:
   int offset(int x, int y, int z, int xSize, int ySize);
   int offset(int x, int y, int xSize);
   void issueTimingMessage(QString message);
+  void issuePartialTimingMessage(QString message);
 
 private:
   QString file_;
