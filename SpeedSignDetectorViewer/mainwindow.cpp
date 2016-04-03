@@ -173,3 +173,11 @@ void MainWindow::on_actionFind_Scaled_Objects_triggered()
   // Find the object
   detector_.findScaledObject();
 }
+
+void MainWindow::on_actionTrain_triggered()
+{
+  // Do edge detection
+  on_actionEdges_triggered();
+  // Compute R-Table
+  on_actionR_Table_triggered();
+}

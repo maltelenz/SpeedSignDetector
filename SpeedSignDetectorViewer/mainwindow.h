@@ -41,6 +41,8 @@ private slots:
   void on_selectionReleased(QRectF rectf);
   void on_mouseMoved(QPointF point);
 
+  void on_actionTrain_triggered();
+
 public slots:
   void on_issueMessage(QString message);
   void on_issueTiming(QString message);

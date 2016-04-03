@@ -43,7 +43,19 @@
     <addaction name="actionLoad_Image"/>
     <addaction name="actionQuit"/>
    </widget>
+   <widget class="QMenu" name="menuOperations">
+    <property name="title">
+     <string>Operations</string>
+    </property>
+    <addaction name="actionEdges"/>
+    <addaction name="actionBlur"/>
+    <addaction name="actionShowAngles"/>
+    <addaction name="actionEdge_Thinning"/>
+    <addaction name="actionR_Table"/>
+    <addaction name="actionFind_Object"/>
+   </widget>
    <addaction name="menuSpeed_Detector"/>
+   <addaction name="menuOperations"/>
   </widget>
   <widget class="QToolBar" name="mainToolBar">
    <attribute name="toolBarArea">
@@ -52,13 +64,9 @@
    <attribute name="toolBarBreak">
     <bool>false</bool>
    </attribute>
+   <addaction name="actionLoad_Image"/>
    <addaction name="actionReset"/>
-   <addaction name="actionBlur"/>
-   <addaction name="actionEdges"/>
-   <addaction name="actionShowAngles"/>
-   <addaction name="actionEdge_Thinning"/>
-   <addaction name="actionR_Table"/>
-   <addaction name="actionFind_Object"/>
+   <addaction name="actionTrain"/>
    <addaction name="actionFind_Scaled_Objects"/>
   </widget>
   <widget class="QStatusBar" name="statusBar"/>
@@ -228,6 +236,11 @@
   <action name="actionFind_Scaled_Objects">
    <property name="text">
     <string>Find Scaled Objects</string>
+   </property>
+  </action>
+  <action name="actionTrain">
+   <property name="text">
+    <string>Train</string>
    </property>
   </action>
  </widget>
