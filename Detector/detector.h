@@ -8,7 +8,7 @@
 #include <QElapsedTimer>
 
 // Detector Includes
-#include "array2d.h"
+#include "arrays.h"
 
 class Detector : public QObject
 {
@@ -44,8 +44,6 @@ signals:
 
 private:
   int interpolate(int a, int b, int progress);
-  int offset(int x, int y, int z, int xSize, int ySize);
-  int offset(int x, int y, int xSize);
   void issueTimingMessage(QString message);
   void issuePartialTimingMessage(QString message);
 
@@ -59,7 +57,7 @@ private:
 
   const QSize imgSize_;
 
-  static const double SCALING_MAX_ = 0.7;
+  static const double SCALING_MAX_ = 0.9;
   static const double SCALING_MIN_ = 0.1;
   static const double SCALING_STEP_ = 0.05;
 

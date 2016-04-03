@@ -13,7 +13,7 @@ find_package(Qt5Widgets)
 add_library(Detector STATIC
 	detector.cpp
   math_utilities.cpp
-  array2d.cpp
+  arrays.cpp
 )
 
 # Use the Widgets module from Qt 5.

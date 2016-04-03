@@ -244,13 +244,14 @@ void Detector::findObject(bool createImage)
   int width(img_.width());
   int height(img_.height());
 
-  int* accumulator = (int*) calloc(width * height, sizeof(int));
-  if (accumulator == NULL) {
+  Array2D accumulator(width, height);
+  if (!accumulator.init()) {
     // Failed to allocate memory, abort nicely
     issueMessage("Failed to allocate memory for the accumulator in Detector::findObject.");
     timer_.invalidate();
     return;
   }
+
   int pixelColor;
   int angle;
 
@@ -279,7 +280,7 @@ void Detector::findObject(bool createImage)
           xc = qRound(x + v.second * cos(v.first));
           yc = qRound(y + v.second * sin(v.first));
           if (xc >= 0 && xc < width - 1 && yc >= 0 && yc < height - 1) {
-            (accumulator[offset(xc, yc, width)])++;
+            accumulator.increment(xc, yc);
           }
         }
       }
@@ -293,8 +294,8 @@ void Detector::findObject(bool createImage)
 //  QStringList dump;
   for (int y = 0; y < height; ++y) {
     for (int x = 0; x < width; ++x) {
-      if (accumulator[offset(x, y, width)] > max) {
-        max = accumulator[offset(x, y, width)];
+      if (accumulator.get(x, y) > max) {
+        max = accumulator.get(x, y);
         xmax = x;
         ymax = y;
       }
@@ -327,14 +328,13 @@ void Detector::findObject(bool createImage)
     int color;
     for (int y = 0; y < height; ++y) {
       for (int x = 0; x < width; ++x) {
-        color = qRound((double)accumulator[offset(x, y, width)]/max * 255);
+        color = qRound((double)accumulator.get(x, y)/max * 255);
         findVoting_.setPixel(x, y, qRgb(color, color, color));
       }
     }
     issuePartialTimingMessage("--Created image");
   }
 
-  free(accumulator);
   issueTimingMessage("Object detection");
 }
 
@@ -349,15 +349,15 @@ void Detector::findScaledObject(bool createImage)
 
   int width(img_.width());
   int height(img_.height());
-  int numberScalingSteps(qCeil((SCALING_MAX_ - SCALING_MIN_) / SCALING_STEP_) + 1);
+  int numberScalingSteps(qCeil((SCALING_MAX_ - SCALING_MIN_) / SCALING_STEP_));
 
   issueMessage(QString("Finding objects with %1 scalings from %2 to %3.").arg(
                  numberScalingSteps).arg(
                  SCALING_MIN_).arg(
                  SCALING_MAX_));
 
-  int* accumulator = (int*) calloc(width * height * numberScalingSteps, sizeof(int));
-  if (accumulator == NULL) {
+  Array3D accumulator(width, height, numberScalingSteps);
+  if (!accumulator.init()) {
     // Failed to allocate memory, abort nicely
     issueMessage("Failed to allocate memory for the accumulator in Detector::findScaledObject.");
     timer_.invalidate();
@@ -390,10 +390,10 @@ void Detector::findScaledObject(bool createImage)
           ycp = v.second * sin(v.first);
           for (int s = 0; s < numberScalingSteps; ++s) {
 
-            xc = qRound(x + xcp * (s + 1) * SCALING_STEP_);
-            yc = qRound(y + ycp * (s + 1) * SCALING_STEP_);
+            xc = qRound(x + xcp * (SCALING_MIN_ + s * SCALING_STEP_));
+            yc = qRound(y + ycp * (SCALING_MIN_ + s * SCALING_STEP_));
             if (xc >= 0 && xc < width - 1 && yc >= 0 && yc < height - 1) {
-              (accumulator[offset(xc, yc, s, width, height)])++;
+              accumulator.increment(xc, yc, s);
             }
           }
         }
@@ -401,35 +401,6 @@ void Detector::findScaledObject(bool createImage)
     }
   }
 
-
-//  for (int y = 0; y < height; ++y) {
-//    for (int x = 0; x < width; ++x) {
-//      // Skip outermost border since we did so for the preparatory steps
-//      if( y <= 0 || y >= height - 1 || x <= 0 || x >= width - 1 ) {
-//        continue;
-//      } else {
-//        pixelColor = qGray(img_.pixel(x, y));
-//        if (pixelColor <= 0) {
-//          // Black, not an edge
-//          continue;
-//        }
-//        // Not black, check the R-table
-//        angle = qGray(sobelAngles_.pixel(x, y));
-//        foreach (v, rTable_.values(angle)) {
-//          xcp = v.second * cos(v.first);
-//          ycp = v.second * sin(v.first);
-//          for (int s = 0; s < numberScalingSteps; ++s) {
-
-//            xc = qRound(x + xcp * (s + 1) * SCALING_STEP_);
-//            yc = qRound(y + ycp * (s + 1) * SCALING_STEP_);
-//            if (xc >= 0 && xc < width - 1 && yc >= 0 && yc < height - 1) {
-//              (accumulator[offset(xc, yc, s, width, height)])++;
-//            }
-//          }
-//        }
-//      }
-//    }
-//  }
   issuePartialTimingMessage("Voted");
 
   int max(0);
@@ -439,11 +410,11 @@ void Detector::findScaledObject(bool createImage)
   for (int y = 0; y < height; ++y) {
     for (int x = 0; x < width; ++x) {
       for (int s = 0; s < numberScalingSteps; ++s) {
-        if (accumulator[offset(x, y, s, width, height)] > max) {
-          max = accumulator[offset(x, y, s, width, height)];
+        if (accumulator.get(x, y, s) > max) {
+          max = accumulator.get(x, y, s);
           xmax = x;
           ymax = y;
-          smax = (s + 1) * SCALING_STEP_;
+          smax = (SCALING_MIN_ + s * SCALING_STEP_);
         }
 //        dump << QString::number(accumulator[x][y][s]);
       }
@@ -478,7 +449,7 @@ void Detector::findScaledObject(bool createImage)
       for (int x = 0; x < width; ++x) {
         color = 0;
         for (int s = 0; s < numberScalingSteps; ++s) {
-          color = qMax(color, qRound((double)accumulator[offset(x, y, s, width, height)]/max * 255));
+          color = qMax(color, qRound((double)accumulator.get(x, y, s)/max * 255));
         }
         findVoting_.setPixel(x, y, qRgb(color, color, color));
       }
@@ -486,7 +457,6 @@ void Detector::findScaledObject(bool createImage)
     issuePartialTimingMessage("Built result image");
   }
 
-  free(accumulator);
   issueTimingMessage("Object detection");
 }
 
@@ -555,16 +525,6 @@ void Detector::edgeThinning()
 int Detector::interpolate(int a, int b, int progress)
 {
   return a + (a - b) * ((float) progress / 45);
-}
-
-int Detector::offset(int x, int y, int z, int xSize, int ySize)
-{
-  return (z * xSize * ySize) + (y * xSize) + x;
-}
-
-int Detector::offset(int x, int y, int xSize)
-{
-  return (y * xSize) + x;
 }
 
 void Detector::issueTimingMessage(QString message)
