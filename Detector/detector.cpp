@@ -365,7 +365,7 @@ void Detector::findScaledObject(bool createImage, int numberObjects)
     timer_.invalidate();
     return;
   }
-  QRgb pixelColor;
+  int pixelColor;
   int angle;
 
   double xcp, ycp;
@@ -380,8 +380,8 @@ void Detector::findScaledObject(bool createImage, int numberObjects)
       if( y <= 0 || y >= height - 1 || x <= 0 || x >= width - 1 ) {
         continue;
       } else {
-        pixelColor = line[x];
-        if (qGray(pixelColor) == 0) {
+        pixelColor = qGray(line[x]);
+        if (pixelColor <= 0) {
           // Black, not an edge
           continue;
         }
@@ -391,7 +391,6 @@ void Detector::findScaledObject(bool createImage, int numberObjects)
           xcp = v.second * cos(v.first);
           ycp = v.second * sin(v.first);
           for (int s = 0; s < numberScalingSteps; ++s) {
-
             xc = qRound(x + xcp * (SCALING_MIN_ + s * SCALING_STEP_));
             yc = qRound(y + ycp * (SCALING_MIN_ + s * SCALING_STEP_));
             if (xc >= 0 && xc < width - 1 && yc >= 0 && yc < height - 1) {
@@ -472,6 +471,11 @@ void Detector::findScaledObject(bool createImage, int numberObjects)
   }
 
   issueTimingMessage("Object detection");
+}
+
+QRgb Detector::getColor(QPoint point)
+{
+  return img_.pixel(point);
 }
 
 

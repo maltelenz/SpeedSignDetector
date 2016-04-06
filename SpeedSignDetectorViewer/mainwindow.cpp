@@ -80,7 +80,13 @@ void MainWindow::on_selectionReleased(QRectF rectf)
 
 void MainWindow::on_mouseMoved(QPointF point)
 {
-  QString txt = QString("(%1, %2)").arg(QString::number(point.x()), QString::number(point.y()));
+  QRgb pixelColor(detector_.getColor(point.toPoint()));
+  QString txt = QString("(%1, %2) - (%3,%4,%5)").arg(
+        QString::number(point.x())).arg(
+        QString::number(point.y())).arg(
+        QString::number(qRed(pixelColor))).arg(
+        QString::number(qGreen(pixelColor))).arg(
+        QString::number(qBlue(pixelColor)));
   statusLabel_->setText(txt);
 }
 
