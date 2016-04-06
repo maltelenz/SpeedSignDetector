@@ -109,7 +109,7 @@ void Detector::blurred()
 {
   timer_.start();
   QGraphicsBlurEffect *blur = new QGraphicsBlurEffect;
-  blur->setBlurRadius(2);
+  blur->setBlurRadius(1.1);
 
   QGraphicsScene scene;
   QGraphicsPixmapItem item;
