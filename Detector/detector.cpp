@@ -12,6 +12,7 @@
 
 // Detector includes
 #include "math_utilities.h"
+#include "detection.h"
 
 Detector::Detector() :
   imgSize_(700, 700)
@@ -318,7 +319,8 @@ void Detector::findObject(bool createImage)
               trainingSize_.width(),
               trainingSize_.height()
             ),
-            max
+            max,
+            1
           );
 
   issuePartialTimingMessage("--Located max");
@@ -339,7 +341,7 @@ void Detector::findObject(bool createImage)
 }
 
 
-void Detector::findScaledObject(bool createImage)
+void Detector::findScaledObject(bool createImage, int numberObjects)
 {
   timer_.start();
   if (!findVoting_.isNull()) {
@@ -403,48 +405,60 @@ void Detector::findScaledObject(bool createImage)
 
   issuePartialTimingMessage("Voted");
 
-  int max(0);
-  int xmax, ymax;
-  double smax;
+  QList<Detection> maxList;
+  for (int i = 0; i < numberObjects; ++i) {
+    maxList.append(Detection());
+  }
+  int val;
+  Detection smallest;
+  int foundWidth, foundHeight;
+  QRect foundRect;
 //  QStringList dump;
   for (int y = 0; y < height; ++y) {
     for (int x = 0; x < width; ++x) {
       for (int s = 0; s < numberScalingSteps; ++s) {
-        if (accumulator.get(x, y, s) > max) {
-          max = accumulator.get(x, y, s);
-          xmax = x;
-          ymax = y;
-          smax = (SCALING_MIN_ + s * SCALING_STEP_);
+        val = accumulator.get(x, y, s);
+        if (val > smallest.confidence_) {
+          maxList.removeOne(smallest);
+          foundWidth = (SCALING_MIN_ + s * SCALING_STEP_) * trainingSize_.width();
+          foundHeight = (SCALING_MIN_ + s * SCALING_STEP_) * trainingSize_.height();
+          foundRect = QRect(
+              x - foundWidth / 2,
+              y - foundHeight / 2,
+              foundWidth,
+              foundHeight
+            ),
+          maxList.append(Detection(foundRect, val));
+          qSort(maxList);
+          smallest = maxList.at(0);
         }
-//        dump << QString::number(accumulator[x][y][s]);
+//      dump << QString::number(accumulator[x][y][s]);
       }
     }
   }
 //  qDebug() << dump;
+//  qDebug() << maxList;
   issuePartialTimingMessage("Isolated max");
 
-  issueMessage(
-        QString("Found max: %1").arg(QString::number(max)));
-  issueMessage(
-        QString("At (x, y, s): (%1, %2, %3)").arg(
-          QString::number(xmax)).arg(
-          QString::number(ymax)).arg(
-          QString::number(smax)));
+  Detection d;
+  for (int i = 0; i < numberObjects; ++i) {
+    d = maxList.at(i);
 
-  int foundWidth(smax * trainingSize_.width());
-  int foundHeight(smax * trainingSize_.height());
-  emit itemFound(QRect(
-              xmax - foundWidth / 2,
-              ymax - foundHeight / 2,
-              foundWidth,
-              foundHeight
-            ),
-            max
-          );
+    issueMessage(
+          QString("Found object with confidence: %1").arg(d.confidence_));
+    issueMessage(
+          QString("-- At: (%1, %2), %3x%4").arg(
+            d.box_.center().x()).arg(
+            d.box_.center().y()).arg(
+            d.box_.width()).arg(
+            d.box_.height()));
+    emit itemFound(d.box_, d.confidence_, numberObjects - i);
+  }
 
   if (createImage) {
     findVoting_ = QImage(width, height, QImage::Format_RGB32);
     int color;
+    int max = maxList.last().confidence_;
     for (int y = 0; y < height; ++y) {
       for (int x = 0; x < width; ++x) {
         color = 0;
@@ -461,64 +475,85 @@ void Detector::findScaledObject(bool createImage)
 }
 
 
+void Detector::checkNeighborPixel(bool isEdge, bool* currentlyEdge, int* n, int* s)
+{
+  if (isEdge) {
+    (*n)++;
+    if (!(*currentlyEdge)) {
+      (*s)++;
+      (*currentlyEdge) = true;
+    }
+  } else if ((*currentlyEdge)) {
+    (*s)++;
+    (*currentlyEdge) = false;
+  }
+}
+
 void Detector::edgeThinning()
 {
   timer_.start();
   int width(img_.width());
   int height(img_.height());
 
-  int c1, c2, c3, c4;
-  int cP, cN;
+  int n;
+  int s;
+  bool currentlyEdge;
   int pixelColor;
-  int angle;
+  bool neighbors[8];
+  bool changed = true;
 
-  QImage res(img_);
 
-  for (int y = 0; y < height; ++y) {
-    for (int x = 0; x < width; ++x) {
-      // Ignore outermost border, so we can have an easier/faster checking below
-      if( y <= 0 || y >= height - 1 || x <= 0 || x >= width - 1 ) {
-        continue;
-      }
-      pixelColor = qGray(img_.pixel(x, y));
-      if (pixelColor <= 0) {
-        // Already black, needs no thinning
-        continue;
-      }
+  while (changed) {
+    changed = false;
+    for (int y = 0; y < height; ++y) {
+      for (int x = 0; x < width; ++x) {
+        // Ignore outermost border, so we can have an easier/faster checking below
+        if( y <= 0 || y >= height - 1 || x <= 0 || x >= width - 1 ) {
+          continue;
+        }
+        pixelColor = qGray(img_.pixel(x, y));
+        if (pixelColor <= 0) {
+          // Already black, needs no thinning
+          continue;
+        }
 
-      angle = qGray(sobelAngles_.get(x, y));
-      if (angle <= 45) {
-        c1 = qGray(img_.pixel(x, y - 1));
-        c2 = qGray(img_.pixel(x, y + 1));
-        c3 = qGray(img_.pixel(x - 1, y - 1));
-        c4 = qGray(img_.pixel(x + 1, y + 1));
-      } else if (angle <= 90) {
-        c1 = qGray(img_.pixel(x + 1, y));
-        c2 = qGray(img_.pixel(x - 1, y));
-        c3 = qGray(img_.pixel(x + 1, y - 1));
-        c4 = qGray(img_.pixel(x - 1, y + 1));
-      } else if (angle <= 135) {
-        c1 = qGray(img_.pixel(x - 1, y));
-        c2 = qGray(img_.pixel(x + 1, y));
-        c3 = qGray(img_.pixel(x - 1, y + 1));
-        c4 = qGray(img_.pixel(x + 1, y - 1));
-      } else /* if (angle < 180) */ {
-        c1 = qGray(img_.pixel(x, y + 1));
-        c2 = qGray(img_.pixel(x, y - 1));
-        c3 = qGray(img_.pixel(x + 1, y + 1));
-        c4 = qGray(img_.pixel(x - 1, y - 1));
-      }
+        n = 0;
+        s = 0;
+        neighbors[0] = qGray(img_.pixel(x, y - 1)) > 0;
+        neighbors[1] = qGray(img_.pixel(x + 1, y - 1)) > 0;
+        neighbors[2] = qGray(img_.pixel(x + 1, y)) > 0;
+        neighbors[3] = qGray(img_.pixel(x + 1, y + 1)) > 0;
+        neighbors[4] = qGray(img_.pixel(x, y + 1)) > 0;
+        neighbors[5] = qGray(img_.pixel(x - 1, y + 1)) > 0;
+        neighbors[6] = qGray(img_.pixel(x - 1, y)) > 0;
+        neighbors[7] = qGray(img_.pixel(x - 1, y - 1)) > 0;
 
-      cP = interpolate(c1, c3, angle % 45);
-      cN = interpolate(c2, c4, angle % 45);
+        currentlyEdge = false;
+        if (neighbors[0] > 0) {
+          n++;
+          currentlyEdge = true;
+        }
+        checkNeighborPixel(neighbors[1], &currentlyEdge, &n, &s);
+        checkNeighborPixel(neighbors[2], &currentlyEdge, &n, &s);
+        checkNeighborPixel(neighbors[3], &currentlyEdge, &n, &s);
+        checkNeighborPixel(neighbors[4], &currentlyEdge, &n, &s);
+        checkNeighborPixel(neighbors[5], &currentlyEdge, &n, &s);
+        checkNeighborPixel(neighbors[6], &currentlyEdge, &n, &s);
+        checkNeighborPixel(neighbors[7], &currentlyEdge, &n, &s);
 
-      if (pixelColor < cP || pixelColor < cN) {
-        // The current pixel is weaker than its surroundings, kill it.
-        res.setPixel(x, y, qRgb(0, 0, 0));
+        if (
+            n > 1 && // Not the end of a line
+            n <= 6 && // Not an interior point
+            s < 3 // Not a bridge pixel
+        ) {
+          // Kill pixel
+          img_.setPixel(x, y, qRgb(0, 0, 0));
+          changed = true;
+        }
       }
     }
   }
-  img_ = res;
+
   issueTimingMessage("Edge thinning");
 }
 

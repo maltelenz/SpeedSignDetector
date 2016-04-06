@@ -34,12 +34,12 @@ public:
 
   void generateRTable();
   void findObject(bool createImage = false);
-  void findScaledObject(bool createImage = false);
+  void findScaledObject(bool createImage = false, int numberObjects = 10);
 
 signals:
   void issueMessage(QString message);
   void issueTiming(QString message);
-  void itemFound(QRect position, int confidence);
+  void itemFound(QRect position, int confidence, int order);
 
 
 private:
@@ -62,6 +62,7 @@ private:
   static const double SCALING_STEP_ = 0.05;
 
   QElapsedTimer timer_;
+  void checkNeighborPixel(bool isEdge, bool *currentlyEdge, int *n, int *s);
 };
 
 #endif // DETECTOR_H

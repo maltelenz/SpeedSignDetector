@@ -4,6 +4,7 @@
 // Qt includes
 #include <QMainWindow>
 #include <QGraphicsScene>
+#include <QColor>;
 
 // SpeedSignDetectorViewer includes
 #include "imagescene.h"
@@ -46,13 +47,20 @@ private slots:
 public slots:
   void on_issueMessage(QString message);
   void on_issueTiming(QString message);
-  void on_itemFound(QRect position, int confidence);
+  void on_itemFound(QRect position, int confidence, int order);
 
 private:
   Ui::MainWindow *ui;
 
   ImageScene scene_;
   QLabel* statusLabel_;
+
+  QColor detectionColor1_;
+  QColor detectionColor2_;
+  QColor detectionColor3_;
+  QColor detectionColor4_;
+  QColor detectionColor5_;
+
 
   Detector detector_;
   void refetchImage();

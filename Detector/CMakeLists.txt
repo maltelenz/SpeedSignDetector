@@ -14,6 +14,7 @@ add_library(Detector STATIC
 	detector.cpp
   math_utilities.cpp
   arrays.cpp
+  detection.cpp
 )
 
 # Use the Widgets module from Qt 5.

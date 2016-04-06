@@ -9,7 +9,12 @@
 
 MainWindow::MainWindow(QWidget *parent) :
   QMainWindow(parent),
-  ui(new Ui::MainWindow)
+  ui(new Ui::MainWindow),
+  detectionColor1_(0, 171, 0),
+  detectionColor2_(255, 255, 84),
+  detectionColor3_(250, 122, 42),
+  detectionColor4_(250, 53, 42),
+  detectionColor5_(115, 119, 255)
 {
   ui->setupUi(this);
 
@@ -22,7 +27,7 @@ MainWindow::MainWindow(QWidget *parent) :
 
   connect(&detector_, SIGNAL(issueMessage(QString)), this, SLOT(on_issueMessage(QString)));
   connect(&detector_, SIGNAL(issueTiming(QString)), this, SLOT(on_issueTiming(QString)));
-  connect(&detector_, SIGNAL(itemFound(QRect, int)), this, SLOT(on_itemFound(QRect, int)));
+  connect(&detector_, SIGNAL(itemFound(QRect, int, int)), this, SLOT(on_itemFound(QRect, int, int)));
 
   on_issueMessage(QString("Startup successful."));
   on_issueMessage(QString("Open an image to start."));
@@ -89,9 +94,26 @@ void MainWindow::on_issueTiming(QString message)
   ui->timingsTextEdit->appendPlainText(message);
 }
 
-void MainWindow::on_itemFound(QRect position, int confidence)
+void MainWindow::on_itemFound(QRect position, int confidence, int order)
 {
-  QColor c(0, 150, 0);
+  QColor c;
+  switch (order) {
+  case 1:
+    c = detectionColor1_;
+    break;
+  case 2:
+    c = detectionColor2_;
+    break;
+  case 3:
+    c = detectionColor3_;
+    break;
+  case 4:
+    c = detectionColor4_;
+    break;
+  default:
+    c = detectionColor5_;
+    break;
+  }
   scene_.addRect(position, QPen(c));
   QGraphicsTextItem* ctext = scene_.addText(QString::number(confidence));
   ctext->setPos(position.topLeft());
@@ -162,6 +184,7 @@ void MainWindow::on_actionFind_Object_triggered()
 {
   // Do edge detection
   on_actionEdges_triggered();
+  on_actionEdge_Thinning_triggered();
   // Find the object
   detector_.findObject();
 }
@@ -170,6 +193,7 @@ void MainWindow::on_actionFind_Scaled_Objects_triggered()
 {
   // Do edge detection
   on_actionEdges_triggered();
+  on_actionEdge_Thinning_triggered();
   // Find the object
   detector_.findScaledObject();
 }
@@ -178,6 +202,7 @@ void MainWindow::on_actionTrain_triggered()
 {
   // Do edge detection
   on_actionEdges_triggered();
+  on_actionEdge_Thinning_triggered();
   // Compute R-Table
   on_actionR_Table_triggered();
 }
