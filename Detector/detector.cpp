@@ -473,6 +473,43 @@ void Detector::findScaledObject(bool createImage, int numberObjects)
   issueTimingMessage("Object detection");
 }
 
+void Detector::eliminateColors(double greenfactor, double bluefactor)
+{
+  timer_.start();
+
+  int width(img_.width());
+  int height(img_.height());
+
+  QImage res(img_);
+
+  int i,j;
+  QRgb color;
+  int red, green, blue;
+  int removalVote;
+
+  for (int y = 0; y < height; ++y) {
+    for (int x = 0; x < width; ++x) {
+      removalVote = 0;
+      for ( i = -1; i <= 1; i++) {
+        for (j = -1; j <= 1; j++) {
+          color = img_.pixel(x + i, y + j);
+          red = qRed(color);
+          green = qGreen(color);
+          blue = qBlue(color);
+          if (red < green * greenfactor || red < blue * bluefactor) {
+            removalVote++;
+          }
+        }
+      }
+      if (removalVote > 3) {
+        res.setPixel(x, y, qRgb(0, 0, 0));
+      }
+    }
+  }
+  img_ = res;
+  issueTimingMessage("Color elimination");
+}
+
 QRgb Detector::getColor(QPoint point)
 {
   return img_.pixel(point);
@@ -546,9 +583,10 @@ void Detector::edgeThinning()
         checkNeighborPixel(neighbors[7], &currentlyEdge, &n, &s);
 
         if (
-            n > 1 && // Not the end of a line
-            n <= 6 && // Not an interior point
-            s < 3 // Not a bridge pixel
+            n == 0 || // Standalone pixel is removed
+            (n > 1 && // End of a line is kept
+            n <= 6 && // Interior points are kept
+            s < 3) // Bridge pixels are kept
         ) {
           // Kill pixel
           img_.setPixel(x, y, qRgb(0, 0, 0));

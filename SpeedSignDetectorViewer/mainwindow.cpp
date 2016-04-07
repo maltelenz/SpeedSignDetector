@@ -57,6 +57,7 @@ void MainWindow::on_actionLoad_Image_triggered()
   ui->actionBlur->setEnabled(true);
   ui->actionEdges->setEnabled(true);
   ui->actionFind_Object->setChecked(false);
+  ui->actionEliminate_Colors->setEnabled(true);
 
   connect(&scene_, SIGNAL(mouseReleased(QRectF)), this, SLOT(on_selectionReleased(QRectF)));
   connect(&scene_, SIGNAL(mouseMoved(QPointF)), this, SLOT(on_mouseMoved(QPointF)));
@@ -199,7 +200,7 @@ void MainWindow::on_actionFind_Scaled_Objects_triggered()
 {
   // Do edge detection
   on_actionEdges_triggered();
-  on_actionEdge_Thinning_triggered();
+//  on_actionEdge_Thinning_triggered();
   // Find the object
   detector_.findScaledObject();
 }
@@ -208,7 +209,13 @@ void MainWindow::on_actionTrain_triggered()
 {
   // Do edge detection
   on_actionEdges_triggered();
-  on_actionEdge_Thinning_triggered();
+//  on_actionEdge_Thinning_triggered();
   // Compute R-Table
   on_actionR_Table_triggered();
+}
+
+void MainWindow::on_actionEliminate_Colors_triggered()
+{
+    detector_.eliminateColors(1, 1.2);
+    refetchImage();
 }

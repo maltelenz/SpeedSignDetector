@@ -47,6 +47,7 @@
     <property name="title">
      <string>Operations</string>
     </property>
+    <addaction name="actionEliminate_Colors"/>
     <addaction name="actionEdges"/>
     <addaction name="actionBlur"/>
     <addaction name="actionShowAngles"/>
@@ -241,6 +242,14 @@
   <action name="actionTrain">
    <property name="text">
     <string>Train</string>
+   </property>
+  </action>
+  <action name="actionEliminate_Colors">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="text">
+    <string>Eliminate Colors</string>
    </property>
   </action>
  </widget>

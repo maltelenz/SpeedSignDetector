@@ -36,6 +36,8 @@ public:
   void findObject(bool createImage = false);
   void findScaledObject(bool createImage = false, int numberObjects = 10);
 
+  void eliminateColors(double greenfactor, double bluefactor);
+
   QRgb getColor(QPoint point);
 
 signals:

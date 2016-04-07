@@ -44,6 +44,8 @@ private slots:
 
   void on_actionTrain_triggered();
 
+  void on_actionEliminate_Colors_triggered();
+
 public slots:
   void on_issueMessage(QString message);
   void on_issueTiming(QString message);
