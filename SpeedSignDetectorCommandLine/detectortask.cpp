@@ -3,6 +3,8 @@
 #include <QDebug>
 #include <QPainter>
 #include <QGraphicsTextItem>
+#include <QDir>
+#include <QFileInfo>
 
 DetectorTask::DetectorTask(QObject *parent) :
   out_(stdout),
@@ -33,18 +35,21 @@ void DetectorTask::setResultFile(QString resultFile)
   resultFile_ = resultFile;
 }
 
-void DetectorTask::run()
+void DetectorTask::loadTrainingImage(QString file)
 {
-  out_ << endl << QString("Loading training image from %1").arg(trainingFile_) << endl;
-  detector_.loadImage(trainingFile_);
+  out_ << endl << QString("Loading training image from %1").arg(file) << endl;
+  detector_.loadImage(file);
   out_ << "Training..." << endl;
   detector_.sobelEdges(edgeThreshold_);
   detector_.generateRTable();
+}
 
-  out_ << endl << QString("Loading target image from %1").arg(targetFile_) << endl;
-  detector_.loadImage(targetFile_);
+void DetectorTask::detectInImage(QString rFile, QString file)
+{
+  out_ << endl << QString("Loading target image from %1").arg(file) << endl;
+  detector_.loadImage(file);
 
-  if (!resultFile_.isEmpty()) {
+  if (!rFile.isEmpty()) {
     scene_.clear();
     scene_.addPixmap(detector_.getPixmap());
     scene_.setSceneRect(detector_.getImageSize());
@@ -54,12 +59,46 @@ void DetectorTask::run()
   detector_.sobelEdges(edgeThreshold_);
   detector_.findScaledObject();
 
-  if (!resultFile_.isEmpty()) {
-    out_ << endl << QString("Saving output image to %1").arg(resultFile_) << endl;
+  if (!rFile.isEmpty()) {
+    out_ << endl << QString("Saving output image to %1").arg(rFile) << endl;
     QImage image(scene_.sceneRect().size().toSize(), QImage::Format_RGB32);
     QPainter painter(&image);
     scene_.render(&painter);
-    image.save(resultFile_);
+    image.save(rFile);
+  }
+}
+
+void DetectorTask::run()
+{
+  loadTrainingImage(trainingFile_);
+
+  QStringList supportedImageFilter;
+  supportedImageFilter << "*.jpg" << "*.JPG" << "*.JPEG" << "*.jpeg" << "*.png";
+
+  QStringList targetFiles;
+  QStringList resultFiles;
+  if (QFileInfo(targetFile_).isDir()) {
+    if (!QFileInfo(resultFile_).isDir()) {
+      out_ << "Target file is a directory, but result file is not.";
+      emit finished();
+      return;
+    }
+    QFileInfoList fiList(QDir(targetFile_).entryInfoList(supportedImageFilter, QDir::Files));
+    foreach (QFileInfo f, fiList) {
+      targetFiles << f.filePath();
+      resultFiles << resultFile_ + f.fileName();
+    }
+  } else {
+    targetFiles << targetFile_;
+    if (QFileInfo(resultFile_).isDir()) {
+      resultFiles << resultFile_ + QFileInfo(targetFile_).fileName();
+    } else {
+      resultFiles << resultFile_;
+    }
+  }
+
+  for (int i = 0; i < targetFiles.length(); ++i) {
+    detectInImage(resultFiles.at(i), targetFiles.at(i));
   }
 
   emit finished();

@@ -20,6 +20,10 @@ public:
   void setTargetFile(QString targetFile);
   void setResultFile(QString resultFile);
 
+private:
+  void loadTrainingImage(QString file);
+  void detectInImage(QString rFile, QString file);
+
 public slots:
     void run();
 
