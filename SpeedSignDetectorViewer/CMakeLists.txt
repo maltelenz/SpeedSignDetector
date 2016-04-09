@@ -19,7 +19,7 @@ qt5_wrap_ui(UI_HEADERS mainwindow.ui)
 add_executable(SpeedSignDetectorViewer
 	main.cpp
 	mainwindow.cpp
-  imagescene.cpp
+	imagescene.cpp
 	${UI_HEADERS}
 )
 
