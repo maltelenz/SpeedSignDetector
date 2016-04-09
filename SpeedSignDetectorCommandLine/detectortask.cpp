@@ -16,6 +16,7 @@ DetectorTask::DetectorTask(QObject *parent) :
   detectionColor5_(115, 119, 255)
 {
   connect(&detector_, SIGNAL(issueMessage(QString)), this, SLOT(on_issueMessage(QString)));
+  connect(&detector_, SIGNAL(issueVerboseMessage(QString)), this, SLOT(on_issueVerboseMessage(QString)));
   connect(&detector_, SIGNAL(issueTiming(QString)), this, SLOT(on_issueTiming(QString)));
   connect(&detector_, SIGNAL(itemFound(QRect, int, int)), this, SLOT(on_itemFound(QRect, int, int)));
 }
@@ -35,13 +36,23 @@ void DetectorTask::setResultFile(QString resultFile)
   resultFile_ = resultFile;
 }
 
+void DetectorTask::setColorElimination(bool colorElimination)
+{
+  colorElimination_ = colorElimination;
+}
+
+void DetectorTask::setVerbose(bool verbose)
+{
+  verbose_ = verbose;
+}
+
 void DetectorTask::loadTrainingImage(QString file)
 {
   out_ << endl << QString("Loading training image from %1").arg(file) << endl;
   detector_.loadImage(file);
-  out_ << "Training..." << endl;
+  on_issueVerboseMessage("Training...");
   detector_.sobelEdges(edgeThreshold_);
-  detector_.generateRTable();
+  detector_.generateRTable(false);
 }
 
 void DetectorTask::detectInImage(QString rFile, QString file)
@@ -55,7 +66,11 @@ void DetectorTask::detectInImage(QString rFile, QString file)
     scene_.setSceneRect(detector_.getImageSize());
   }
 
-  out_ << "Detecting..." << endl;
+  on_issueVerboseMessage("Detecting...");
+  if (colorElimination_) {
+    on_issueVerboseMessage("Eliminating colors...");
+    detector_.eliminateColors(1, 1.2);
+  }
   detector_.sobelEdges(edgeThreshold_);
   detector_.findScaledObject();
 
@@ -70,10 +85,17 @@ void DetectorTask::detectInImage(QString rFile, QString file)
 
 void DetectorTask::run()
 {
-  loadTrainingImage(trainingFile_);
-
   QStringList supportedImageFilter;
   supportedImageFilter << "*.jpg" << "*.JPG" << "*.JPEG" << "*.jpeg" << "*.png";
+
+  if (QFileInfo(trainingFile_).isDir()) {
+    QFileInfoList fiList(QDir(trainingFile_).entryInfoList(supportedImageFilter, QDir::Files));
+    foreach (QFileInfo f, fiList) {
+      loadTrainingImage(f.filePath());
+    }
+  } else {
+    loadTrainingImage(trainingFile_);
+  }
 
   QStringList targetFiles;
   QStringList resultFiles;
@@ -104,16 +126,23 @@ void DetectorTask::run()
   emit finished();
 }
 
-
-
 void DetectorTask::on_issueMessage(QString message)
 {
   out_ << message << endl;
 }
 
+void DetectorTask::on_issueVerboseMessage(QString message)
+{
+  if (verbose_) {
+    on_issueMessage(message);
+  }
+}
+
 void DetectorTask::on_issueTiming(QString message)
 {
-  out_ << "Timing: " << message << endl;
+  if (verbose_) {
+    out_ << "Timing: " << message << endl;
+  }
 }
 
 void DetectorTask::on_itemFound(QRect position, int confidence, int order)

@@ -32,7 +32,7 @@ public:
   void sobelEdges(int lowerEdgeThreshold);
   void edgeThinning();
 
-  void generateRTable();
+  void generateRTable(bool clearFirst);
   void findObject(bool createImage = false);
   void findScaledObject(bool createImage = false, int numberObjects = 10);
 
@@ -42,6 +42,7 @@ public:
 
 signals:
   void issueMessage(QString message);
+  void issueVerboseMessage(QString message);
   void issueTiming(QString message);
   void itemFound(QRect position, int confidence, int order);
 
@@ -56,7 +57,8 @@ private:
   QImage img_;
   Array2D sobelAngles_;
   QImage findVoting_;
-  QMultiMap<int, QPair<double, double> > rTable_;
+  QList<QMultiMap<int, QPair<double, double> > > rTables_;
+  QStringList trainingSources_;
   QSize trainingSize_;
 
   const QSize imgSize_;

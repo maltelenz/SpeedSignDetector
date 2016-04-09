@@ -31,11 +31,21 @@ int main(int argc, char *argv[])
           "resultFile");
   parser.addOption(resultFileOption);
 
+  QCommandLineOption colorEliminationOption(QStringList() << "e" << "eliminate-colors",
+          "Eliminate uninteresting colors first.");
+  parser.addOption(colorEliminationOption);
+
+  QCommandLineOption verboseOption(QStringList() << "v" << "verbose",
+          "Verbose output.");
+  parser.addOption(verboseOption);
+
   parser.process(a);
 
   QString trainingFile = parser.value(trainingFileOption);
   QString targetFile = parser.value(targetFileOption);
   QString resultFile = parser.value(resultFileOption);
+  bool colorElimination = parser.isSet(colorEliminationOption);
+  bool verbose = parser.isSet(verboseOption);
 
   QTextStream out(stdout);
 
@@ -53,6 +63,8 @@ int main(int argc, char *argv[])
   task->setTrainingFile(trainingFile);
   task->setTargetFile(targetFile);
   task->setResultFile(resultFile);
+  task->setColorElimination(colorElimination);
+  task->setVerbose(verbose);
 
   QObject::connect(task, SIGNAL(finished()), &a, SLOT(quit()));
 

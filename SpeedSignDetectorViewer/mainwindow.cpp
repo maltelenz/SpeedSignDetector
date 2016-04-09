@@ -178,7 +178,7 @@ void MainWindow::on_actionEdge_Thinning_triggered()
 
 void MainWindow::on_actionR_Table_triggered()
 {
-  detector_.generateRTable();
+  detector_.generateRTable(true);
   ui->actionFind_Object->setEnabled(true);
 }
 

@@ -37,11 +37,11 @@ void Detector::loadImage()
 
   img_ = QImage(file_);
   if (img_.width() > imgSize_.width() || img_.height() > imgSize_.height()) {
-    img_ = img_.scaled(imgSize_, Qt::KeepAspectRatio);
+    img_ = img_.scaled(imgSize_, Qt::KeepAspectRatio, Qt::SmoothTransformation);
   }
   findVoting_ = QImage();
 
-  issueMessage(QString("Loaded image with size: (%1, %2)").arg(img_.width()).arg(img_.height()));
+  issueVerboseMessage(QString("Loaded image with size: (%1, %2)").arg(img_.width()).arg(img_.height()));
 
   issueTimingMessage("Load image");
 }
@@ -199,10 +199,10 @@ void Detector::sobelEdges(int lowerEdgeThreshold)
   issueTimingMessage("Edge detection");
 }
 
-void Detector::generateRTable()
+void Detector::generateRTable(bool clearFirst)
 {
   timer_.start();
-  rTable_.clear();
+  QMultiMap<int, QPair<double, double> > rTable;
 
   int width(img_.width());
   int height(img_.height());
@@ -231,11 +231,19 @@ void Detector::generateRTable()
         angleOfEdge = qGray(sobelAngles_.get(x, y));
         distance = qSqrt(qPow(x - xc, 2) + qPow(y - yc, 2));
         angleToEdge = atan2Positive(y - yc, x - xc);
-        rTable_.insert(angleOfEdge, QPair<double, double>(angleToEdge, distance));
+        rTable.insert(angleOfEdge, QPair<double, double>(angleToEdge, distance));
       }
     }
   }
-//  qDebug() << rTable_;
+//  qDebug() << rTable;
+
+  if (clearFirst) {
+    rTables_.clear();
+    trainingSources_.clear();
+  }
+  rTables_.append(rTable);
+  trainingSources_.append(file_);
+
   findVoting_ = QImage();
   trainingSize_ = img_.size();
   issueTimingMessage("R-table generation");
@@ -252,96 +260,99 @@ void Detector::findObject(bool createImage)
   int width(img_.width());
   int height(img_.height());
 
-  Array2D accumulator(width, height);
-  if (!accumulator.init()) {
-    // Failed to allocate memory, abort nicely
-    issueMessage("Failed to allocate memory for the accumulator in Detector::findObject.");
-    timer_.invalidate();
-    return;
-  }
+  QMultiMap<int, QPair<double, double> > rTable;
+  foreach (rTable, rTables_) {
+    Array2D accumulator(width, height);
+    if (!accumulator.init()) {
+      // Failed to allocate memory, abort nicely
+      issueMessage("Failed to allocate memory for the accumulator in Detector::findObject.");
+      timer_.invalidate();
+      return;
+    }
 
-  int pixelColor;
-  int angle;
+    int pixelColor;
+    int angle;
 
-  int xc, yc;
+    int xc, yc;
 
-  QPair<double, double> v;
+    QPair<double, double> v;
 
-  issuePartialTimingMessage("--Allocated datastructures");
+    issuePartialTimingMessage("--Allocated datastructures");
 
-  for (int y = 0; y < height; ++y) {
-    for (int x = 0; x < width; ++x) {
-      // Skip outermost border since we did so for the preparatory steps
-      if( y <= 0 || y >= height - 1 || x <= 0 || x >= width - 1 ) {
-        continue;
-      } else {
-        pixelColor = qGray(img_.pixel(x, y));
-        if (pixelColor <= 0) {
-          // Black, not an edge
+    for (int y = 0; y < height; ++y) {
+      for (int x = 0; x < width; ++x) {
+        // Skip outermost border since we did so for the preparatory steps
+        if( y <= 0 || y >= height - 1 || x <= 0 || x >= width - 1 ) {
           continue;
-        }
-        // Not black, check the R-table
-        angle = qGray(sobelAngles_.get(x, y));
-        QList<QPair<double, double> > values = rTable_.values(angle);
-        for (int i = 0; i < values.size(); ++i) {
-          v = values.at(i);
-          xc = qRound(x + v.second * cos(v.first));
-          yc = qRound(y + v.second * sin(v.first));
-          if (xc >= 0 && xc < width - 1 && yc >= 0 && yc < height - 1) {
-            accumulator.increment(xc, yc);
+        } else {
+          pixelColor = qGray(img_.pixel(x, y));
+          if (pixelColor <= 0) {
+            // Black, not an edge
+            continue;
+          }
+          // Not black, check the R-table
+          angle = qGray(sobelAngles_.get(x, y));
+          QList<QPair<double, double> > values = rTable.values(angle);
+          for (int i = 0; i < values.size(); ++i) {
+            v = values.at(i);
+            xc = qRound(x + v.second * cos(v.first));
+            yc = qRound(y + v.second * sin(v.first));
+            if (xc >= 0 && xc < width - 1 && yc >= 0 && yc < height - 1) {
+              accumulator.increment(xc, yc);
+            }
           }
         }
       }
     }
-  }
 
-  issuePartialTimingMessage("--Voted");
+    issuePartialTimingMessage("--Voted");
 
-  int max(0);
-  int xmax, ymax;
-//  QStringList dump;
-  for (int y = 0; y < height; ++y) {
-    for (int x = 0; x < width; ++x) {
-      if (accumulator.get(x, y) > max) {
-        max = accumulator.get(x, y);
-        xmax = x;
-        ymax = y;
-      }
-      //dump << QString::number(accumulator[offset(x, y, width)]);
-    }
-    //dump << "\n";
-  }
-  //qDebug() << dump;
-
-  issueMessage(
-        QString("Found max: %1").arg(QString::number(max)));
-  issueMessage(
-        QString("At (x, y): (%1, %2)").arg(
-          QString::number(xmax)).arg(
-          QString::number(ymax)));
-
-  emit itemFound(QRect(
-              xmax - trainingSize_.width() / 2,
-              ymax - trainingSize_.height() / 2,
-              trainingSize_.width(),
-              trainingSize_.height()
-            ),
-            max,
-            1
-          );
-
-  issuePartialTimingMessage("--Located max");
-
-  if (createImage) {
-    findVoting_ = QImage(width, height, QImage::Format_RGB32);
-    int color;
+    int max(0);
+    int xmax, ymax;
+  //  QStringList dump;
     for (int y = 0; y < height; ++y) {
       for (int x = 0; x < width; ++x) {
-        color = qRound((double)accumulator.get(x, y)/max * 255);
-        findVoting_.setPixel(x, y, qRgb(color, color, color));
+        if (accumulator.get(x, y) > max) {
+          max = accumulator.get(x, y);
+          xmax = x;
+          ymax = y;
+        }
+        //dump << QString::number(accumulator[offset(x, y, width)]);
       }
+      //dump << "\n";
     }
-    issuePartialTimingMessage("--Created image");
+    //qDebug() << dump;
+
+    issueMessage(
+          QString("Found max: %1").arg(QString::number(max)));
+    issueMessage(
+          QString("At (x, y): (%1, %2)").arg(
+            QString::number(xmax)).arg(
+            QString::number(ymax)));
+
+    emit itemFound(QRect(
+                xmax - trainingSize_.width() / 2,
+                ymax - trainingSize_.height() / 2,
+                trainingSize_.width(),
+                trainingSize_.height()
+              ),
+              max,
+              1
+            );
+
+    issuePartialTimingMessage("--Located max");
+
+    if (createImage) {
+      findVoting_ = QImage(width, height, QImage::Format_RGB32);
+      int color;
+      for (int y = 0; y < height; ++y) {
+        for (int x = 0; x < width; ++x) {
+          color = qRound((double)accumulator.get(x, y)/max * 255);
+          findVoting_.setPixel(x, y, qRgb(color, color, color));
+        }
+      }
+      issuePartialTimingMessage("--Created image");
+    }
   }
 
   issueTimingMessage("Object detection");
@@ -360,121 +371,133 @@ void Detector::findScaledObject(bool createImage, int numberObjects)
   int height(img_.height());
   int numberScalingSteps(qCeil((SCALING_MAX_ - SCALING_MIN_) / SCALING_STEP_));
 
-  issueMessage(QString("Finding objects with %1 scalings from %2 to %3.").arg(
+  issueVerboseMessage(QString("Finding objects with %1 scalings from %2 to %3.").arg(
                  numberScalingSteps).arg(
                  SCALING_MIN_).arg(
                  SCALING_MAX_));
 
-  Array3D accumulator(width, height, numberScalingSteps);
-  if (!accumulator.init()) {
-    // Failed to allocate memory, abort nicely
-    issueMessage("Failed to allocate memory for the accumulator in Detector::findScaledObject.");
-    timer_.invalidate();
-    return;
-  }
-  int pixelColor;
-  int angle;
+  QMultiMap<int, QPair<double, double> > rTable;
+  for (int ri = 0; ri < rTables_.length(); ++ri) {
+    rTable = rTables_.at(ri);
 
-  double xcp, ycp;
-  int xc, yc;
+    Array3D accumulator(width, height, numberScalingSteps);
+    if (!accumulator.init()) {
+      // Failed to allocate memory, abort nicely
+      issueMessage("Failed to allocate memory for the accumulator in Detector::findScaledObject.");
+      timer_.invalidate();
+      return;
+    }
+    int pixelColor;
+    int angle;
 
-  QPair<double, double> v;
-  issuePartialTimingMessage("Allocated datastructures");
+    double xcp, ycp;
+    int xc, yc;
 
-  for (int y = 0; y < height; ++y) {
-    const QRgb* line = (const QRgb *)img_.constScanLine(y);
-    for (int x = 0; x < width; ++x) {
-      if( y <= 0 || y >= height - 1 || x <= 0 || x >= width - 1 ) {
-        continue;
-      } else {
-        pixelColor = qGray(line[x]);
-        if (pixelColor <= 0) {
-          // Black, not an edge
+    QPair<double, double> v;
+    issuePartialTimingMessage("Allocated datastructures");
+
+    for (int y = 0; y < height; ++y) {
+      const QRgb* line = (const QRgb *)img_.constScanLine(y);
+      for (int x = 0; x < width; ++x) {
+        if( y <= 0 || y >= height - 1 || x <= 0 || x >= width - 1 ) {
           continue;
-        }
-        // Not black, check the R-table
-        angle = qGray(sobelAngles_.get(x, y));
-        foreach (v, rTable_.values(angle)) {
-          xcp = v.second * cos(v.first);
-          ycp = v.second * sin(v.first);
-          for (int s = 0; s < numberScalingSteps; ++s) {
-            xc = qRound(x + xcp * (SCALING_MIN_ + s * SCALING_STEP_));
-            yc = qRound(y + ycp * (SCALING_MIN_ + s * SCALING_STEP_));
-            if (xc >= 0 && xc < width - 1 && yc >= 0 && yc < height - 1) {
-              accumulator.increment(xc, yc, s);
+        } else {
+          pixelColor = qGray(line[x]);
+          if (pixelColor <= 0) {
+            // Black, not an edge
+            continue;
+          }
+          // Not black, check the R-table
+          angle = qGray(sobelAngles_.get(x, y));
+          foreach (v, rTable.values(angle)) {
+            xcp = v.second * cos(v.first);
+            ycp = v.second * sin(v.first);
+            for (int s = 0; s < numberScalingSteps; ++s) {
+              xc = qRound(x + xcp * (SCALING_MIN_ + s * SCALING_STEP_));
+              yc = qRound(y + ycp * (SCALING_MIN_ + s * SCALING_STEP_));
+              if (xc >= 0 && xc < width - 1 && yc >= 0 && yc < height - 1) {
+                accumulator.increment(xc, yc, s);
+              }
             }
           }
         }
       }
     }
-  }
 
-  issuePartialTimingMessage("Voted");
+    issuePartialTimingMessage("Voted");
 
-  QList<Detection> maxList;
-  for (int i = 0; i < numberObjects; ++i) {
-    maxList.append(Detection());
-  }
-  int val;
-  Detection smallest;
-  int foundWidth, foundHeight;
-  QRect foundRect;
-//  QStringList dump;
-  for (int y = 0; y < height; ++y) {
-    for (int x = 0; x < width; ++x) {
-      for (int s = 0; s < numberScalingSteps; ++s) {
-        val = accumulator.get(x, y, s);
-        if (val > smallest.confidence_) {
-          maxList.removeOne(smallest);
-          foundWidth = (SCALING_MIN_ + s * SCALING_STEP_) * trainingSize_.width();
-          foundHeight = (SCALING_MIN_ + s * SCALING_STEP_) * trainingSize_.height();
-          foundRect = QRect(
-              x - foundWidth / 2,
-              y - foundHeight / 2,
-              foundWidth,
-              foundHeight
-            ),
-          maxList.append(Detection(foundRect, val));
-          qSort(maxList);
-          smallest = maxList.at(0);
-        }
-//      dump << QString::number(accumulator[x][y][s]);
-      }
+    QList<Detection> maxList;
+    for (int i = 0; i < numberObjects; ++i) {
+      maxList.append(Detection());
     }
-  }
-//  qDebug() << dump;
-//  qDebug() << maxList;
-  issuePartialTimingMessage("Isolated max");
-
-  Detection d;
-  for (int i = 0; i < numberObjects; ++i) {
-    d = maxList.at(i);
-
-    issueMessage(
-          QString("Found object with confidence: %1").arg(d.confidence_));
-    issueMessage(
-          QString("-- At: (%1, %2), %3x%4").arg(
-            d.box_.center().x()).arg(
-            d.box_.center().y()).arg(
-            d.box_.width()).arg(
-            d.box_.height()));
-    emit itemFound(d.box_, d.confidence_, numberObjects - i);
-  }
-
-  if (createImage) {
-    findVoting_ = QImage(width, height, QImage::Format_RGB32);
-    int color;
-    int max = maxList.last().confidence_;
+    int val;
+    Detection smallest;
+    int foundWidth, foundHeight;
+    QRect foundRect;
+  //  QStringList dump;
     for (int y = 0; y < height; ++y) {
       for (int x = 0; x < width; ++x) {
-        color = 0;
         for (int s = 0; s < numberScalingSteps; ++s) {
-          color = qMax(color, qRound((double)accumulator.get(x, y, s)/max * 255));
+          val = accumulator.get(x, y, s);
+          if (val > smallest.confidence_) {
+            maxList.removeOne(smallest);
+            foundWidth = (SCALING_MIN_ + s * SCALING_STEP_) * trainingSize_.width();
+            foundHeight = (SCALING_MIN_ + s * SCALING_STEP_) * trainingSize_.height();
+            foundRect = QRect(
+                x - foundWidth / 2,
+                y - foundHeight / 2,
+                foundWidth,
+                foundHeight
+              ),
+            maxList.append(Detection(foundRect, val));
+            qSort(maxList);
+            smallest = maxList.at(0);
+          }
+  //      dump << QString::number(accumulator[x][y][s]);
         }
-        findVoting_.setPixel(x, y, qRgb(color, color, color));
       }
     }
-    issuePartialTimingMessage("Built result image");
+  //  qDebug() << dump;
+  //  qDebug() << maxList;
+    issuePartialTimingMessage("Isolated max");
+
+    issueMessage(QString("Using training data from: %1").arg(trainingSources_.at(ri)));
+
+    Detection d;
+    for (int i = 0; i < numberObjects; ++i) {
+      d = maxList.at(i);
+
+      QString msg1(QString("Found object with confidence: %1").arg(d.confidence_));
+      QString msg2(QString("-- At: (%1, %2), %3x%4").arg(
+                     d.box_.center().x()).arg(
+                     d.box_.center().y()).arg(
+                     d.box_.width()).arg(
+                     d.box_.height()));
+      if (i == numberObjects - 1) {
+        issueMessage(msg1);
+        issueMessage(msg2);
+      } else {
+        issueVerboseMessage(msg1);
+        issueVerboseMessage(msg2);
+      }
+      emit itemFound(d.box_, d.confidence_, numberObjects - i);
+    }
+
+    if (createImage) {
+      findVoting_ = QImage(width, height, QImage::Format_RGB32);
+      int color;
+      int max = maxList.last().confidence_;
+      for (int y = 0; y < height; ++y) {
+        for (int x = 0; x < width; ++x) {
+          color = 0;
+          for (int s = 0; s < numberScalingSteps; ++s) {
+            color = qMax(color, qRound((double)accumulator.get(x, y, s)/max * 255));
+          }
+          findVoting_.setPixel(x, y, qRgb(color, color, color));
+        }
+      }
+      issuePartialTimingMessage("Built result image");
+    }
   }
 
   issueTimingMessage("Object detection");
@@ -496,6 +519,10 @@ void Detector::eliminateColors(double greenfactor, double bluefactor)
 
   for (int y = 0; y < height; ++y) {
     for (int x = 0; x < width; ++x) {
+      // Ignore outermost border, so we can have an easier/faster checking below
+      if( y <= 0 || y >= height - 1 || x <= 0 || x >= width - 1 ) {
+        continue;
+      }
       removalVote = 0;
       for ( i = -1; i <= 1; i++) {
         for (j = -1; j <= 1; j++) {
