@@ -4,7 +4,7 @@
 // Qt includes
 #include <QMainWindow>
 #include <QGraphicsScene>
-#include <QColor>;
+#include <QColor>
 
 // SpeedSignDetectorViewer includes
 #include "imagescene.h"
