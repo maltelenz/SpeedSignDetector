@@ -61,9 +61,9 @@ private:
 
   const QSize imgSize_;
 
-  static const double SCALING_MAX_ = 0.9;
-  static const double SCALING_MIN_ = 0.1;
-  static const double SCALING_STEP_ = 0.05;
+  const double SCALING_MAX_;
+  const double SCALING_MIN_;
+  const double SCALING_STEP_;
 
   QElapsedTimer timer_;
   void checkNeighborPixel(bool isEdge, bool *currentlyEdge, int *n, int *s);

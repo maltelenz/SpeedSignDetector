@@ -15,11 +15,18 @@
 #include "detection.h"
 
 Detector::Detector() :
-  imgSize_(700, 700)
+  imgSize_(700, 700),
+  SCALING_MAX_(0.9),
+  SCALING_MIN_(0.1),
+  SCALING_STEP_(0.05)
 {
 }
 
 Detector::Detector(QString file) :
+  imgSize_(700, 700),
+  SCALING_MAX_(0.9),
+  SCALING_MIN_(0.1),
+  SCALING_STEP_(0.05),
   file_(file)
 {
 }
