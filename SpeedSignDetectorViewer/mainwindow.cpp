@@ -25,12 +25,15 @@ MainWindow::MainWindow(QWidget *parent) :
   statusLabel_ = new QLabel("");
   ui->statusBar->addPermanentWidget(statusLabel_);
 
+  detector_.initialize();
+
   connect(&detector_, SIGNAL(issueMessage(QString)), this, SLOT(on_issueMessage(QString)));
+  connect(&detector_, SIGNAL(issueVerboseMessage(QString)), this, SLOT(on_issueMessage(QString)));
   connect(&detector_, SIGNAL(issueTiming(QString)), this, SLOT(on_issueTiming(QString)));
   connect(&detector_, SIGNAL(itemFound(QRect, int, int)), this, SLOT(on_itemFound(QRect, int, int)));
 
   on_issueMessage(QString("Startup successful."));
-  on_issueMessage(QString("Open an image to start."));
+  on_issueMessage(QString("Click Train to select the training directory."));
 }
 
 MainWindow::~MainWindow()
@@ -53,30 +56,15 @@ void MainWindow::on_actionLoad_Image_triggered()
   scene_.addPixmap(detector_.getPixmap());
   scene_.setSceneRect(detector_.getImageSize());
 
+  detector_.detect(true);
+
   ui->actionReset->setEnabled(true);
   ui->actionBlur->setEnabled(true);
   ui->actionEdges->setEnabled(true);
-  ui->actionFind_Object->setChecked(false);
   ui->actionEliminate_Colors->setEnabled(true);
 
   connect(&scene_, SIGNAL(mouseReleased(QRectF)), this, SLOT(on_selectionReleased(QRectF)));
   connect(&scene_, SIGNAL(mouseMoved(QPointF)), this, SLOT(on_mouseMoved(QPointF)));
-}
-
-void MainWindow::on_selectionReleased(QRectF rectf)
-{
-  QRect nr(
-        qMin(rectf.left(), rectf.right()),
-        qMin(rectf.top(), rectf.bottom()),
-        qAbs(rectf.width()),
-        qAbs(rectf.height())
-      );
-  if (!detector_.getImageSize().contains(nr) || nr.width() == 0 || nr.height() == 0) {
-    // Illegal rectangle, abort!
-    return;
-  }
-  QColor mean(detector_.averageSection(nr.left(), nr.top(), nr.right(), nr.bottom()));
-  scene_.addRect(nr, QPen(mean), QBrush(mean));
 }
 
 void MainWindow::on_mouseMoved(QPointF point)
@@ -140,7 +128,6 @@ void MainWindow::on_actionReset_triggered()
 {
   ui->actionShowAngles->setEnabled(false);
   ui->actionEdge_Thinning->setEnabled(false);
-  ui->actionR_Table->setEnabled(false);
   detector_.loadImage();
   refetchImage();
 }
@@ -153,10 +140,9 @@ void MainWindow::on_actionBlur_triggered()
 
 void MainWindow::on_actionEdges_triggered()
 {
-  detector_.sobelEdges(ui->lowerThreshold->value());
+  detector_.sobelEdges();
   ui->actionShowAngles->setEnabled(true);
   ui->actionEdge_Thinning->setEnabled(true);
-  ui->actionR_Table->setEnabled(true);
   refetchImage();
 }
 
@@ -176,42 +162,21 @@ void MainWindow::on_actionEdge_Thinning_triggered()
   refetchImage();
 }
 
-void MainWindow::on_actionR_Table_triggered()
-{
-  detector_.generateRTable(true);
-  ui->actionFind_Object->setEnabled(true);
-}
-
 void MainWindow::on_actionQuit_triggered()
 {
   QCoreApplication::quit();
 }
 
-void MainWindow::on_actionFind_Object_triggered()
-{
-  // Do edge detection
-  on_actionEdges_triggered();
-  on_actionEdge_Thinning_triggered();
-  // Find the object
-  detector_.findObject();
-}
-
-void MainWindow::on_actionFind_Scaled_Objects_triggered()
-{
-  // Do edge detection
-  on_actionEdges_triggered();
-//  on_actionEdge_Thinning_triggered();
-  // Find the object
-  detector_.findScaledObject();
-}
-
 void MainWindow::on_actionTrain_triggered()
 {
-  // Do edge detection
-  on_actionEdges_triggered();
-//  on_actionEdge_Thinning_triggered();
-  // Compute R-Table
-  on_actionR_Table_triggered();
+  QString dir(
+        QFileDialog::getExistingDirectory(this,
+           tr("Training Directory")));
+  if (dir.isNull()) {
+    // User pressed cancel
+    return;
+  }
+  detector_.train(dir + "/");
 }
 
 void MainWindow::on_actionEliminate_Colors_triggered()

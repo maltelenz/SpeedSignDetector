@@ -9,6 +9,7 @@
 
 // Detector Includes
 #include "arrays.h"
+#include "detection.h"
 
 class Detector : public QObject
 {
@@ -18,23 +19,28 @@ public:
   Detector();
   Detector(QString file);
 
+  enum Speed { NoSpeed, Thirty, Forty, Fifty, Sixty, Seventy, Eighty, Ninety, Hundred, HundredTen, HundredTwenty };
+  void initialize();
+
   void loadImage();
   void loadImage(QString file);
 
   QPixmap getPixmap();
   QPixmap getSobelAnglePixmap();
-  QPixmap getObjectHeatmapPixmap();
 
   QRect getImageSize();
 
-  QColor averageSection(int xStart, int yStart, int xStop, int yStop);
   void blurred();
-  void sobelEdges(int lowerEdgeThreshold);
+  void sobelEdges();
   void edgeThinning();
 
-  void generateRTable(bool clearFirst);
-  void findObject(bool createImage = false);
-  void findScaledObject(bool createImage = false, int numberObjects = 10);
+  void train(QString trainingFolder);
+  void detect(bool colorElimination);
+
+  void generateRTable(Speed speed);
+
+  QList<Detection> findNoSpeedObject(int numberObjects = 10);
+  QMap<Speed, double> detectSpeed(Detection detection);
 
   void eliminateColors(double greenfactor, double bluefactor);
 
@@ -45,6 +51,7 @@ signals:
   void issueVerboseMessage(QString message);
   void issueTiming(QString message);
   void itemFound(QRect position, int confidence, int order);
+  void speedFound(QRect position, double confidence, Detector::Speed speed);
 
 
 private:
@@ -52,20 +59,23 @@ private:
   void issueTimingMessage(QString message);
   void issuePartialTimingMessage(QString message);
 
+public:
+  QMap<Speed, QString> speeds_;
+
 private:
   QString file_;
   QImage img_;
   Array2D sobelAngles_;
-  QImage findVoting_;
-  QList<QMultiMap<int, QPair<double, double> > > rTables_;
-  QStringList trainingSources_;
-  QSize trainingSize_;
+  QMap<Speed, QMultiMap<int, QPair<double, double> > > rTables_;
+  QMap<Speed, QSize> trainingSize_;
 
-  const QSize imgSize_;
+  int edgeThreshold_;
 
-  const double SCALING_MAX_;
-  const double SCALING_MIN_;
-  const double SCALING_STEP_;
+  QSize imgSize_;
+
+  double signMaxSize_;
+  double signMinSize_;
+  double numberScalings_;
 
   QElapsedTimer timer_;
   void checkNeighborPixel(bool isEdge, bool *currentlyEdge, int *n, int *s);

@@ -52,8 +52,6 @@
     <addaction name="actionBlur"/>
     <addaction name="actionShowAngles"/>
     <addaction name="actionEdge_Thinning"/>
-    <addaction name="actionR_Table"/>
-    <addaction name="actionFind_Object"/>
    </widget>
    <addaction name="menuSpeed_Detector"/>
    <addaction name="menuOperations"/>
@@ -68,7 +66,6 @@
    <addaction name="actionLoad_Image"/>
    <addaction name="actionReset"/>
    <addaction name="actionTrain"/>
-   <addaction name="actionFind_Scaled_Objects"/>
   </widget>
   <widget class="QStatusBar" name="statusBar"/>
   <widget class="QDockWidget" name="messagesDock">
@@ -213,30 +210,6 @@
    </property>
    <property name="shortcut">
     <string>Ctrl+Q</string>
-   </property>
-  </action>
-  <action name="actionR_Table">
-   <property name="enabled">
-    <bool>false</bool>
-   </property>
-   <property name="text">
-    <string>R-Table</string>
-   </property>
-   <property name="toolTip">
-    <string>Generate R-Table</string>
-   </property>
-  </action>
-  <action name="actionFind_Object">
-   <property name="enabled">
-    <bool>false</bool>
-   </property>
-   <property name="text">
-    <string>Find Object</string>
-   </property>
-  </action>
-  <action name="actionFind_Scaled_Objects">
-   <property name="text">
-    <string>Find Scaled Objects</string>
    </property>
   </action>
   <action name="actionTrain">

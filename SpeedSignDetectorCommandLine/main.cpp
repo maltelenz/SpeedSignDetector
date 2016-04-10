@@ -3,6 +3,7 @@
 #include <QCommandLineParser>
 #include <QTextStream>
 #include <QTimer>
+#include <QFileInfo>
 
 // SpeedSignDetector Includes
 #include "detectortask.h"
@@ -16,10 +17,10 @@ int main(int argc, char *argv[])
   parser.setApplicationDescription("Speed Sign Detector Command Line");
   parser.addHelpOption();
 
-  QCommandLineOption trainingFileOption(QStringList() << "t" << "training-file",
-          "Use <file> for training the detection.",
-          "trainingFile");
-  parser.addOption(trainingFileOption);
+  QCommandLineOption trainingDirectoryOption(QStringList() << "t" << "training-directory",
+          "Use <trainingDirectory> for training the detection.",
+          "trainingDirectory");
+  parser.addOption(trainingDirectoryOption);
 
   QCommandLineOption targetFileOption(QStringList() << "a" << "target-file",
           "Look for object in <targetFile>.",
@@ -41,7 +42,7 @@ int main(int argc, char *argv[])
 
   parser.process(a);
 
-  QString trainingFile = parser.value(trainingFileOption);
+  QString trainingDirectory = parser.value(trainingDirectoryOption);
   QString targetFile = parser.value(targetFileOption);
   QString resultFile = parser.value(resultFileOption);
   bool colorElimination = parser.isSet(colorEliminationOption);
@@ -49,18 +50,23 @@ int main(int argc, char *argv[])
 
   QTextStream out(stdout);
 
-  if (trainingFile.isEmpty()) {
-    out << "A training file is required, give one using --training-file <file>." << endl;
+  if (trainingDirectory.isEmpty()) {
+    out << "A training directory is required, give one using --training-directory <directory>." << endl;
     return 1;
+  }
+
+  if (!QFileInfo(trainingDirectory).isDir()) {
+    out << "The training directory must be a directory." << endl;
+    return 2;
   }
 
   if (targetFile.isEmpty()) {
     out << "A target file is required, give one using --target-file <file>." << endl;
-    return 2;
+    return 3;
   }
 
   DetectorTask *task = new DetectorTask(&a);
-  task->setTrainingFile(trainingFile);
+  task->setTrainingDirectory(trainingDirectory);
   task->setTargetFile(targetFile);
   task->setResultFile(resultFile);
   task->setColorElimination(colorElimination);

@@ -16,7 +16,7 @@ class DetectorTask : public QObject
 public:
   explicit DetectorTask(QObject *parent = 0);
 
-  void setTrainingFile(QString trainingFile);
+  void setTrainingDirectory(QString trainingDirectory);
   void setTargetFile(QString targetFile);
   void setResultFile(QString resultFile);
 
@@ -33,20 +33,18 @@ public slots:
     void on_issueMessage(QString message);
     void on_issueVerboseMessage(QString message);
     void on_issueTiming(QString message);
-    void on_itemFound(QRect position, int confidence, int order);
+    void on_speedFound(QRect position, double confidence, Detector::Speed speed);
 
 signals:
     void finished();
 
 private:
-  QString trainingFile_;
+  QString trainingDirectory_;
   QString targetFile_;
   QString resultFile_;
 
   bool colorElimination_;
   bool verbose_;
-
-  int edgeThreshold_;
 
   QGraphicsScene scene_;
 
