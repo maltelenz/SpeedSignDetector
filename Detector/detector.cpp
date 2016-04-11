@@ -28,8 +28,8 @@ void Detector::initialize()
   edgeThreshold_ = 100;
   imgSize_ = QSize(600, 600);
   signMaxSize_ = 300;
-  signMinSize_ = 20;
-  numberScalings_ = 15;
+  signMinSize_ = 40;
+  numberScalings_ = 20;
 
   speeds_.insert(NoSpeed, "nospeed");
   speeds_.insert(Thirty, "30");
@@ -186,6 +186,7 @@ void Detector::train(QString trainingFolder) {
     issueMessage(QString("Loading training image %1").arg(imgFilePath));
     loadImage(imgFilePath);
     sobelEdges();
+    edgeThinning();
     generateRTable(s);
   }
 }
@@ -198,6 +199,7 @@ void Detector::detect(bool colorElimination)
     eliminateColors(1, 1.2);
   }
   sobelEdges();
+  edgeThinning();
   QList<Detection> noSpeedDetections = findNoSpeedObject(1);
   foreach (Detection d, noSpeedDetections) {
     detectSpeed(d);
@@ -252,6 +254,10 @@ QMap<Detector::Speed, double> Detector::detectSpeed(Detection detection)
 {
   timer_.start();
 
+  double lowerScalingFactor(0.8);
+  double upperScalingFactor(1.2);
+  int numberScalings(10);
+
   int width(img_.width());
   int height(img_.height());
 
@@ -266,6 +272,12 @@ QMap<Detector::Speed, double> Detector::detectSpeed(Detection detection)
   Speed maxSpeed;
   double maxConfidence(0);
 
+  QRect enlargedBox(
+        detection.box_.left() - (upperScalingFactor - 1) * detection.box_.width(),
+        detection.box_.top() - (upperScalingFactor - 1) * detection.box_.height(),
+        upperScalingFactor * detection.box_.width(),
+        upperScalingFactor * detection.box_.height());
+
   QMultiMap<int, QPair<double, double> > rTable;
   foreach (Speed speed, rTables_.keys()) {
     if (speed == NoSpeed) {
@@ -274,69 +286,27 @@ QMap<Detector::Speed, double> Detector::detectSpeed(Detection detection)
     }
     rTable = rTables_.value(speed);
 
-    double scaling((double)detection.box_.width()/trainingSize_.value(speed).width());
+    double detectedScaling((double)detection.box_.width()/trainingSize_.value(speed).width());
 
-    issueVerboseMessage(QString("Looking for speed %1 with scaling %2.").arg(speeds_.value(speed)).arg(scaling));
+    issueVerboseMessage(QString("Looking for speed %1.").arg(speeds_.value(speed)));
 
-    Array2D accumulator(width, height);
-    if (!accumulator.init()) {
-      // Failed to allocate memory, abort nicely
-      issueMessage("Failed to allocate memory for the accumulator in Detector::detectSpeed.");
-      timer_.invalidate();
-      return QMap<Detector::Speed, double>();
-    }
-    int pixelColor;
-    int angle;
+    QList<Detection> maxList = findObject(
+          1,
+          lowerScalingFactor * detectedScaling,
+          upperScalingFactor * detectedScaling,
+          numberScalings,
+          rTables_.value(speed),
+          enlargedBox);
 
-    double xcp, ycp;
-    int xc, yc;
-
-    QPair<double, double> v;
-    issuePartialTimingMessage("Allocated datastructures");
-
-    for (int y = ymin; y < ymax; ++y) {
-      const QRgb* line = (const QRgb *)img_.constScanLine(y);
-      for (int x = xmin; x < xmax; ++x) {
-        if( y <= ymin || y >= ymax - 1 || x <= xmin || x >= xmax - 1 ) {
-          continue;
-        } else {
-          pixelColor = qGray(line[x]);
-          if (pixelColor <= 0) {
-            // Black, not an edge
-            continue;
-          }
-          // Not black, check the R-table
-          angle = qGray(sobelAngles_.get(x, y));
-          foreach (v, rTable.values(angle)) {
-            xcp = v.second * cos(v.first);
-            ycp = v.second * sin(v.first);
-            xc = qRound(x + xcp * scaling);
-            yc = qRound(y + ycp * scaling);
-            if (xc >= 0 && xc < width - 1 && yc >= 0 && yc < height - 1) {
-              accumulator.increment(xc, yc);
-            }
-          }
-        }
-      }
-    }
-
-    issuePartialTimingMessage("Voted");
-
-    int maxval(0);
-    int xm, ym;
-    for (int y = ymin; y < ymax; ++y) {
-      for (int x = xmin; x < xmax; ++x) {
-        if (accumulator.get(x, y) > maxval) {
-          maxval = accumulator.get(x, y);
-          xm = x;
-          ym = y;
-        }
-      }
-    }
-    double confidence((double)maxval/rTable.size());
+    double confidence((double)maxList.first().confidence_/rTable.size());
     issuePartialTimingMessage("Isolated max");
 
-    issueMessage(QString("Found %1 with value %2 and confidence %3 at (%4,%5)").arg(speeds_.value(speed)).arg(maxval).arg(confidence).arg(xm).arg(ym));
+    issueMessage(QString("Found %1 with value %2 and confidence %3 at (%4,%5)").arg(
+                   speeds_.value(speed)).arg(
+                   maxList.first().confidence_).arg(
+                   confidence).arg(
+                   maxList.first().box_.center().x()).arg(
+                   maxList.first().box_.center().y()));
     maxMap.insert(speed, confidence);
     if (confidence > maxConfidence) {
       maxConfidence = confidence;
@@ -355,20 +325,39 @@ QList<Detection> Detector::findNoSpeedObject(int numberObjects)
 {
   timer_.start();
 
+  double scalingMin(signMinSize_/trainingSize_.value(NoSpeed).width());
+  double scalingMax(signMaxSize_/trainingSize_.value(NoSpeed).width());
+
+  QList<Detection> maxList = findObject(numberObjects, scalingMin, scalingMax, numberScalings_, rTables_.value(NoSpeed), img_.rect());
+
+  issueTimingMessage("Sign detection");
+  return maxList;
+}
+
+QList<Detection> Detector::findObject(
+      int numberObjects,
+      double scalingMin,
+      double scalingMax,
+      int nScalings,
+      QMultiMap<int, QPair<double, double> > rTable,
+      QRect detectionArea
+    )
+{
+
   int width(img_.width());
   int height(img_.height());
 
-  double scalingMin(signMinSize_/trainingSize_.value(NoSpeed).width());
-  double scalingMax(signMaxSize_/trainingSize_.value(NoSpeed).width());
-  double scalingStep((scalingMax - scalingMin)/(numberScalings_ - 1));
+  int ymin(qMax(detectionArea.top(), 0));
+  int ymax(qMin(detectionArea.bottom(), height));
+  int xmin(qMax(detectionArea.left(), 0));
+  int xmax(qMin(detectionArea.right(), width));
 
-  QMultiMap<int, QPair<double, double> > rTable(rTables_.value(NoSpeed));
+  double scalingStep((scalingMax - scalingMin)/(nScalings - 1));
 
-  Array3D accumulator(width, height, numberScalings_);
+  Array3D accumulator(width, height, nScalings);
   if (!accumulator.init()) {
     // Failed to allocate memory, abort nicely
-    issueMessage("Failed to allocate memory for the accumulator in Detector::findNoSpeedObject.");
-    timer_.invalidate();
+    issueMessage("Failed to allocate memory for the accumulator in Detector::findObject.");
     return QList<Detection>();
   }
   int pixelColor;
@@ -380,10 +369,10 @@ QList<Detection> Detector::findNoSpeedObject(int numberObjects)
   QPair<double, double> v;
   issuePartialTimingMessage("Allocated datastructures");
 
-  for (int y = 0; y < height; ++y) {
+  for (int y = ymin; y < ymax; ++y) {
     const QRgb* line = (const QRgb *)img_.constScanLine(y);
-    for (int x = 0; x < width; ++x) {
-      if( y <= 0 || y >= height - 1 || x <= 0 || x >= width - 1 ) {
+    for (int x = xmin; x < xmax; ++x) {
+      if( y <= ymin || y >= ymax - 1 || x <= xmin || x >= xmax - 1 ) {
         continue;
       } else {
         pixelColor = qGray(line[x]);
@@ -396,7 +385,7 @@ QList<Detection> Detector::findNoSpeedObject(int numberObjects)
         foreach (v, rTable.values(angle)) {
           xcp = v.second * cos(v.first);
           ycp = v.second * sin(v.first);
-          for (int s = 0; s < numberScalings_; ++s) {
+          for (int s = 0; s < nScalings; ++s) {
             xc = qRound(x + xcp * (scalingMin + s * scalingStep));
             yc = qRound(y + ycp * (scalingMin + s * scalingStep));
             if (xc >= 0 && xc < width - 1 && yc >= 0 && yc < height - 1) {
@@ -419,9 +408,9 @@ QList<Detection> Detector::findNoSpeedObject(int numberObjects)
   int foundWidth, foundHeight;
   QRect foundRect;
 //  QStringList dump;
-  for (int y = 0; y < height; ++y) {
-    for (int x = 0; x < width; ++x) {
-      for (int s = 0; s < numberScalings_; ++s) {
+  for (int y = ymin; y < ymax; ++y) {
+    for (int x = xmin; x < xmax; ++x) {
+      for (int s = 0; s < nScalings; ++s) {
         val = accumulator.get(x, y, s);
         if (val > smallest.confidence_) {
           maxList.removeOne(smallest);
@@ -464,7 +453,6 @@ QList<Detection> Detector::findNoSpeedObject(int numberObjects)
     }
   }
 
-  issueTimingMessage("Sign detection");
   return maxList;
 }
 
@@ -542,55 +530,78 @@ void Detector::edgeThinning()
   bool neighbors[8];
   bool changed = true;
 
-
+  QList<QPoint> toKill;
   while (changed) {
     changed = false;
-    for (int y = 0; y < height; ++y) {
-      for (int x = 0; x < width; ++x) {
-        // Ignore outermost border, so we can have an easier/faster checking below
-        if( y <= 0 || y >= height - 1 || x <= 0 || x >= width - 1 ) {
-          continue;
-        }
-        pixelColor = qGray(img_.pixel(x, y));
-        if (pixelColor <= 0) {
-          // Already black, needs no thinning
-          continue;
-        }
+    for (int direction = 0; direction < 7; direction+=2) {
+      for (int y = 0; y < height; ++y) {
+        for (int x = 0; x < width; ++x) {
+          // Ignore outermost border, so we can have an easier/faster checking below
+          if( y <= 0 || y >= height - 1 || x <= 0 || x >= width - 1 ) {
+            continue;
+          }
+          pixelColor = qGray(img_.pixel(x, y));
+          if (pixelColor <= 0) {
+            // Already black, needs no thinning
+            continue;
+          }
 
-        n = 0;
-        s = 0;
-        neighbors[0] = qGray(img_.pixel(x, y - 1)) > 0;
-        neighbors[1] = qGray(img_.pixel(x + 1, y - 1)) > 0;
-        neighbors[2] = qGray(img_.pixel(x + 1, y)) > 0;
-        neighbors[3] = qGray(img_.pixel(x + 1, y + 1)) > 0;
-        neighbors[4] = qGray(img_.pixel(x, y + 1)) > 0;
-        neighbors[5] = qGray(img_.pixel(x - 1, y + 1)) > 0;
-        neighbors[6] = qGray(img_.pixel(x - 1, y)) > 0;
-        neighbors[7] = qGray(img_.pixel(x - 1, y - 1)) > 0;
+          n = 0;
+          s = 0;
 
-        currentlyEdge = false;
-        if (neighbors[0] > 0) {
-          n++;
-          currentlyEdge = true;
-        }
-        checkNeighborPixel(neighbors[1], &currentlyEdge, &n, &s);
-        checkNeighborPixel(neighbors[2], &currentlyEdge, &n, &s);
-        checkNeighborPixel(neighbors[3], &currentlyEdge, &n, &s);
-        checkNeighborPixel(neighbors[4], &currentlyEdge, &n, &s);
-        checkNeighborPixel(neighbors[5], &currentlyEdge, &n, &s);
-        checkNeighborPixel(neighbors[6], &currentlyEdge, &n, &s);
-        checkNeighborPixel(neighbors[7], &currentlyEdge, &n, &s);
+          /*
+           * This is the indexing of the neighbors
+           *  -------------
+           *  | 7 | 0 | 1 |
+           *  -------------
+           *  | 6 | X | 2 |
+           *  -------------
+           *  | 5 | 4 | 3 |
+           *  -------------
+           *
+          */
 
-        if (
-            n == 0 || // Standalone pixel is removed
-            (n > 1 && // End of a line is kept
-            n <= 6 && // Interior points are kept
-            s < 3) // Bridge pixels are kept
-        ) {
-          // Kill pixel
-          img_.setPixel(x, y, qRgb(0, 0, 0));
-          changed = true;
+          neighbors[0] = qGray(img_.pixel(x, y - 1)) > 0;
+          neighbors[1] = qGray(img_.pixel(x + 1, y - 1)) > 0;
+          neighbors[2] = qGray(img_.pixel(x + 1, y)) > 0;
+          neighbors[3] = qGray(img_.pixel(x + 1, y + 1)) > 0;
+          neighbors[4] = qGray(img_.pixel(x, y + 1)) > 0;
+          neighbors[5] = qGray(img_.pixel(x - 1, y + 1)) > 0;
+          neighbors[6] = qGray(img_.pixel(x - 1, y)) > 0;
+          neighbors[7] = qGray(img_.pixel(x - 1, y - 1)) > 0;
+
+          if (neighbors[direction] > 0) {
+            // Not removing pixels in the current direction
+            continue;
+          }
+
+          currentlyEdge = false;
+          if (neighbors[0] > 0) {
+            n++;
+            currentlyEdge = true;
+          }
+          checkNeighborPixel(neighbors[1], &currentlyEdge, &n, &s);
+          checkNeighborPixel(neighbors[2], &currentlyEdge, &n, &s);
+          checkNeighborPixel(neighbors[3], &currentlyEdge, &n, &s);
+          checkNeighborPixel(neighbors[4], &currentlyEdge, &n, &s);
+          checkNeighborPixel(neighbors[5], &currentlyEdge, &n, &s);
+          checkNeighborPixel(neighbors[6], &currentlyEdge, &n, &s);
+          checkNeighborPixel(neighbors[7], &currentlyEdge, &n, &s);
+
+          if (
+              n == 0 || // Standalone pixel is removed
+              (n > 1 && // End of a line is kept
+              n <= 6 && // Interior points are kept
+              s < 3) // Bridge pixels are kept
+          ) {
+            // Kill pixel
+            toKill.append(QPoint(x, y));
+            changed = true;
+          }
         }
+      }
+      foreach (QPoint p, toKill) {
+        img_.setPixel(p.x(), p.y(), qRgb(0, 0, 0));
       }
     }
   }

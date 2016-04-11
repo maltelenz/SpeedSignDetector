@@ -59,6 +59,9 @@ private:
   void issueTimingMessage(QString message);
   void issuePartialTimingMessage(QString message);
 
+  void checkNeighborPixel(bool isEdge, bool *currentlyEdge, int *n, int *s);
+  QList<Detection> findObject(int numberObjects, double scalingMin, double scalingMax, int nScalings, QMultiMap<int, QPair<double, double> > rTable, QRect detectionArea);
+
 public:
   QMap<Speed, QString> speeds_;
 
@@ -78,7 +81,6 @@ private:
   double numberScalings_;
 
   QElapsedTimer timer_;
-  void checkNeighborPixel(bool isEdge, bool *currentlyEdge, int *n, int *s);
 };
 
 #endif // DETECTOR_H
