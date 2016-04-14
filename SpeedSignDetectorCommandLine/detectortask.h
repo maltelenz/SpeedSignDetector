@@ -16,6 +16,7 @@ class DetectorTask : public QObject
 public:
   explicit DetectorTask(QObject *parent = 0);
 
+  void setMode(QString mode);
   void setTrainingDirectory(QString trainingDirectory);
   void setTargetFile(QString targetFile);
   void setResultFile(QString resultFile);
@@ -39,6 +40,7 @@ signals:
     void finished();
 
 private:
+  QString mode_;
   QString trainingDirectory_;
   QString targetFile_;
   QString resultFile_;

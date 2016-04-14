@@ -21,6 +21,11 @@ DetectorTask::DetectorTask(QObject *parent) :
   connect(&detector_, SIGNAL(speedFound(QRect, double, Detector::Speed)), this, SLOT(on_speedFound(QRect, double, Detector::Speed)));
 }
 
+void DetectorTask::setMode(QString mode)
+{
+  mode_ = mode;
+}
+
 void DetectorTask::setTrainingDirectory(QString trainingDirectory)
 {
   trainingDirectory_ = trainingDirectory;
@@ -57,7 +62,11 @@ void DetectorTask::detectInImage(QString rFile, QString file)
     scene_.setSceneRect(detector_.getImageSize());
   }
 
-  detector_.detect(colorElimination_);
+  if (mode_ == "Edge") {
+    detector_.detect(colorElimination_);
+  } else { // "Harris"
+    detector_.detectHarris(colorElimination_);
+  }
 
   if (!rFile.isEmpty()) {
     out_ << endl << QString("Saving output image to %1").arg(rFile) << endl;
@@ -70,7 +79,11 @@ void DetectorTask::detectInImage(QString rFile, QString file)
 
 void DetectorTask::run()
 {
-  detector_.train(trainingDirectory_);
+  if (mode_ == "Edge") {
+    detector_.train(trainingDirectory_);
+  } else { // "Harris"
+    detector_.trainHarris(trainingDirectory_);
+  }
 
   QStringList supportedImageFilter;
   supportedImageFilter << "*.jpg" << "*.JPG" << "*.JPEG" << "*.jpeg" << "*.png";

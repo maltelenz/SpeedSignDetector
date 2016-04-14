@@ -25,10 +25,11 @@ Detector::Detector(QString file) :
 
 void Detector::initialize()
 {
-  edgeThreshold_ = 100;
+  edgeThreshold_ = 50;
+  harrisThreshold_ = 10000000;
   imgSize_ = QSize(600, 600);
-  signMaxSize_ = 300;
-  signMinSize_ = 40;
+  signMaxSize_ = qRound(imgSize_.width() * 0.1);
+  signMinSize_ = qRound(imgSize_.width() * 0.03);
   numberScalings_ = 20;
 
   speeds_.insert(NoSpeed, "nospeed");
@@ -42,6 +43,16 @@ void Detector::initialize()
   speeds_.insert(Hundred, "100");
   speeds_.insert(HundredTen, "110");
   speeds_.insert(HundredTwenty, "120");
+}
+
+void Detector::setEdgeThreshold(double threshold)
+{
+  edgeThreshold_ = threshold;
+}
+
+void Detector::setHarrisThreshold(double threshold)
+{
+  harrisThreshold_ = threshold;
 }
 
 void Detector::loadImage()
@@ -176,6 +187,98 @@ void Detector::sobelEdges()
   issueTimingMessage("Edge detection");
 }
 
+void Detector::harrisCorners()
+{
+  timer_.start();
+  // Sobel masks
+  int gX[3][3] = {
+      {-1, 0, 1},
+      {-2, 0, 2},
+      {-1, 0, 1}
+    };
+
+  int gY[3][3] = {
+    {1, 2, 1},
+    {0, 0, 0},
+    {-1, -2, -1}
+  };
+
+  QImage res(img_.size(), QImage::Format_RGB32);
+
+  int width(img_.width());
+  int height(img_.height());
+
+  if (!sobelAngles_.init(width, height)) {
+    // Failed to allocate memory, abort nicely
+    issueMessage("Failed to allocate memory for the harrisCorners_ in Detector::harrisCorners.");
+    timer_.invalidate();
+    return;
+  }
+
+  int i, j;
+  long sumX, sumY;
+  int sum;
+  uint color;
+
+  double phi;
+  int angle;
+
+  double r;
+  double ix2, iy2, ixy, sx2, sy2, sxy;
+  double detH;
+  double kTraceH2;
+  double k(0.05);
+
+  issueVerboseMessage(QString("Harris threshold is: %1").arg(harrisThreshold_));
+
+  for (int y = 0; y < height; ++y) {
+    for (int x = 0; x < width; ++x) {
+      // Make outermost border black, so we can have an easier/faster for loop below
+      if( y <= 0 || y >= height - 1 || x <= 0 || x >= width - 1 ) {
+        r = 0;
+      } else {
+        sumX = 0;
+        sumY = 0;
+        for ( i = -1; i <= 1; i++) {
+          for (j = -1; j <= 1; j++) {
+           color = img_.pixel(x + i, y + j);
+           sumX += qGray(color) * gX[i + 1][j + 1];
+           sumY += qGray(color) * gY[i + 1][j + 1];
+          }
+        }
+        // Compute angle/gradient
+        sum = qAbs(sumX) + qAbs(sumY);
+        sum = qMin(sum, 255);
+        phi = atan2upperHalfPlane(sumY, sumX);
+        // Angle is between 0 and 180 degrees, where 0 is E/W, 45 is NE/SW and 90 is N/S
+        angle = qRound(qRadiansToDegrees(phi));
+
+        // Harris corner algorithm description from
+        // http://www.cse.psu.edu/~rtc12/CSE486/lecture06.pdf
+        ix2 = sumX * sumX;
+        iy2 = sumY * sumY;
+        ixy = sumX * sumY;
+        // Using simplified version without windowing
+        sx2 = ix2;
+        sy2 = iy2;
+        sxy = ixy;
+        detH = sx2 * sy2 - sxy * sxy;
+        kTraceH2 = k * (sx2 + sy2) * (sx2 + sy2);
+        r = qAbs(qRound(detH - kTraceH2));
+        if (r < harrisThreshold_) {
+          r = 0;
+        } else {
+          r = 255;
+        }
+      }
+      res.setPixel(x, y, qRgb(r, r, r));
+      sobelAngles_.set(x, y, angle);
+    }
+  }
+  img_ = res;
+  issueTimingMessage("Harris corners");
+}
+
 void Detector::train(QString trainingFolder) {
   issueVerboseMessage("Training...");
 
@@ -191,6 +294,20 @@ void Detector::train(QString trainingFolder) {
   }
 }
 
+void Detector::trainHarris(QString trainingFolder) {
+  issueVerboseMessage("Training using Harris corners...");
+
+  rTables_.clear();
+  QString imgFilePath;
+  foreach (Speed s, speeds_.keys()) {
+    imgFilePath = trainingFolder + "training-" + speeds_.value(s) + ".png";
+    issueMessage(QString("Loading training image %1").arg(imgFilePath));
+    loadImage(imgFilePath);
+    harrisCorners();
+    generateRTable(s);
+  }
+}
+
 void Detector::detect(bool colorElimination)
 {
   issueVerboseMessage("Detecting...");
@@ -200,6 +317,20 @@ void Detector::detect(bool colorElimination)
   }
   sobelEdges();
   edgeThinning();
+  QList<Detection> noSpeedDetections = findNoSpeedObject(1);
+  foreach (Detection d, noSpeedDetections) {
+    detectSpeed(d);
+  }
+}
+
+void Detector::detectHarris(bool colorElimination)
+{
+  issueVerboseMessage("Detecting...");
+  if (colorElimination) {
+    issueVerboseMessage("Eliminating colors...");
+    eliminateColors(1, 1.2);
+  }
+  harrisCorners();
   QList<Detection> noSpeedDetections = findNoSpeedObject(1);
   foreach (Detection d, noSpeedDetections) {
     detectSpeed(d);
@@ -499,7 +630,10 @@ void Detector::eliminateColors(double greenfactor, double bluefactor)
 
 QRgb Detector::getColor(QPoint point)
 {
-  return img_.pixel(point);
+  if (img_.valid(point)) {
+    return img_.pixel(point);
+  }
+  return qRgb(0, 0, 0);
 }
 
 

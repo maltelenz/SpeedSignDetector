@@ -56,14 +56,10 @@ void MainWindow::on_actionLoad_Image_triggered()
   scene_.addPixmap(detector_.getPixmap());
   scene_.setSceneRect(detector_.getImageSize());
 
-  detector_.detect(true);
-
-  ui->actionReset->setEnabled(true);
   ui->actionBlur->setEnabled(true);
   ui->actionEdges->setEnabled(true);
   ui->actionEliminate_Colors->setEnabled(true);
 
-  connect(&scene_, SIGNAL(mouseReleased(QRectF)), this, SLOT(on_selectionReleased(QRectF)));
   connect(&scene_, SIGNAL(mouseMoved(QPointF)), this, SLOT(on_mouseMoved(QPointF)));
 }
 
@@ -143,6 +139,7 @@ void MainWindow::on_actionEdges_triggered()
   detector_.sobelEdges();
   ui->actionShowAngles->setEnabled(true);
   ui->actionEdge_Thinning->setEnabled(true);
+  ui->actionReset->setEnabled(true);
   refetchImage();
 }
 
@@ -159,6 +156,7 @@ void MainWindow::on_actionShowAngles_triggered(bool on)
 void MainWindow::on_actionEdge_Thinning_triggered()
 {
   detector_.edgeThinning();
+  ui->actionReset->setEnabled(true);
   refetchImage();
 }
 
@@ -179,8 +177,54 @@ void MainWindow::on_actionTrain_triggered()
   detector_.train(dir + "/");
 }
 
+void MainWindow::on_actionTrain_Harris_triggered()
+{
+  QString dir(
+        QFileDialog::getExistingDirectory(this,
+           tr("Training Directory")));
+  if (dir.isNull()) {
+    // User pressed cancel
+    return;
+  }
+  detector_.trainHarris(dir + "/");
+}
+
 void MainWindow::on_actionEliminate_Colors_triggered()
 {
     detector_.eliminateColors(1, 1.2);
+    ui->actionReset->setEnabled(true);
     refetchImage();
+}
+
+void MainWindow::on_actionDetect_triggered()
+{
+  detector_.detect(true);
+
+  ui->actionReset->setEnabled(true);
+}
+
+void MainWindow::on_actionDetect_Harris_triggered()
+{
+  detector_.detectHarris(true);
+
+  ui->actionReset->setEnabled(true);
+}
+
+void MainWindow::on_actionHarris_Corners_triggered()
+{
+  detector_.harrisCorners();
+  ui->actionShowAngles->setEnabled(true);
+  ui->actionEdge_Thinning->setEnabled(true);
+  ui->actionReset->setEnabled(true);
+  refetchImage();
+}
+
+void MainWindow::on_edgeThreshold_textChanged(const QString &value)
+{
+  detector_.setEdgeThreshold(value.toDouble());
+}
+
+void MainWindow::on_harrisThreshold_textChanged(const QString &value)
+{
+  detector_.setHarrisThreshold(value.toDouble());
 }

@@ -42,6 +42,17 @@ private slots:
 
   void on_actionEliminate_Colors_triggered();
 
+  void on_actionDetect_triggered();
+
+  void on_actionHarris_Corners_triggered();
+
+  void on_edgeThreshold_textChanged(const QString &value);
+  void on_harrisThreshold_textChanged(const QString &value);
+
+  void on_actionTrain_Harris_triggered();
+
+  void on_actionDetect_Harris_triggered();
+
 public slots:
   void on_issueMessage(QString message);
   void on_issueTiming(QString message);

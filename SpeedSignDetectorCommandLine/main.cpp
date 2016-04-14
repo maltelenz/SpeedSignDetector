@@ -17,6 +17,11 @@ int main(int argc, char *argv[])
   parser.setApplicationDescription("Speed Sign Detector Command Line");
   parser.addHelpOption();
 
+  QCommandLineOption modeOption(QStringList() << "m" << "mode",
+          "Choose <mode> between \"Edge\" or \"Harris\".",
+          "mode");
+  parser.addOption(modeOption);
+
   QCommandLineOption trainingDirectoryOption(QStringList() << "t" << "training-directory",
           "Use <trainingDirectory> for training the detection.",
           "trainingDirectory");
@@ -42,6 +47,7 @@ int main(int argc, char *argv[])
 
   parser.process(a);
 
+  QString mode = parser.value(modeOption);
   QString trainingDirectory = parser.value(trainingDirectoryOption);
   QString targetFile = parser.value(targetFileOption);
   QString resultFile = parser.value(resultFileOption);
@@ -66,6 +72,7 @@ int main(int argc, char *argv[])
   }
 
   DetectorTask *task = new DetectorTask(&a);
+  task->setMode(mode);
   task->setTrainingDirectory(trainingDirectory);
   task->setTargetFile(targetFile);
   task->setResultFile(resultFile);

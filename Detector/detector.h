@@ -22,6 +22,9 @@ public:
   enum Speed { NoSpeed, Thirty, Forty, Fifty, Sixty, Seventy, Eighty, Ninety, Hundred, HundredTen, HundredTwenty };
   void initialize();
 
+  void setEdgeThreshold(double threshold);
+  void setHarrisThreshold(double threshold);
+
   void loadImage();
   void loadImage(QString file);
 
@@ -33,9 +36,12 @@ public:
   void blurred();
   void sobelEdges();
   void edgeThinning();
+  void harrisCorners();
 
   void train(QString trainingFolder);
+  void trainHarris(QString trainingFolder);
   void detect(bool colorElimination);
+  void detectHarris(bool colorElimination);
 
   void generateRTable(Speed speed);
 
@@ -72,7 +78,8 @@ private:
   QMap<Speed, QMultiMap<int, QPair<double, double> > > rTables_;
   QMap<Speed, QSize> trainingSize_;
 
-  int edgeThreshold_;
+  double edgeThreshold_;
+  double harrisThreshold_;
 
   QSize imgSize_;
 

@@ -49,6 +49,7 @@
     </property>
     <addaction name="actionEliminate_Colors"/>
     <addaction name="actionEdges"/>
+    <addaction name="actionHarris_Corners"/>
     <addaction name="actionBlur"/>
     <addaction name="actionShowAngles"/>
     <addaction name="actionEdge_Thinning"/>
@@ -66,6 +67,9 @@
    <addaction name="actionLoad_Image"/>
    <addaction name="actionReset"/>
    <addaction name="actionTrain"/>
+   <addaction name="actionTrain_Harris"/>
+   <addaction name="actionDetect"/>
+   <addaction name="actionDetect_Harris"/>
   </widget>
   <widget class="QStatusBar" name="statusBar"/>
   <widget class="QDockWidget" name="messagesDock">
@@ -118,22 +122,33 @@
    </attribute>
    <widget class="QWidget" name="dockWidgetContents_2">
     <layout class="QGridLayout" name="gridLayout_3">
-     <item row="0" column="1">
-      <layout class="QVBoxLayout" name="verticalLayout">
-       <item>
-        <widget class="QSlider" name="lowerThreshold">
-         <property name="maximum">
-          <number>255</number>
-         </property>
-         <property name="value">
-          <number>100</number>
-         </property>
-         <property name="orientation">
-          <enum>Qt::Vertical</enum>
-         </property>
-        </widget>
-       </item>
-      </layout>
+     <item row="1" column="0" alignment="Qt::AlignTop">
+      <widget class="QLabel" name="label">
+       <property name="text">
+        <string>Edge Threshold</string>
+       </property>
+      </widget>
+     </item>
+     <item row="5" column="0" alignment="Qt::AlignTop">
+      <widget class="QLineEdit" name="harrisThreshold">
+       <property name="text">
+        <string>10000000</string>
+       </property>
+      </widget>
+     </item>
+     <item row="3" column="0" alignment="Qt::AlignTop">
+      <widget class="QLineEdit" name="edgeThreshold">
+       <property name="text">
+        <string>50</string>
+       </property>
+      </widget>
+     </item>
+     <item row="4" column="0" alignment="Qt::AlignTop">
+      <widget class="QLabel" name="label_2">
+       <property name="text">
+        <string>Harris threshold</string>
+       </property>
+      </widget>
      </item>
     </layout>
    </widget>
@@ -223,6 +238,26 @@
    </property>
    <property name="text">
     <string>Eliminate Colors</string>
+   </property>
+  </action>
+  <action name="actionDetect">
+   <property name="text">
+    <string>Detect</string>
+   </property>
+  </action>
+  <action name="actionHarris_Corners">
+   <property name="text">
+    <string>Harris Corners</string>
+   </property>
+  </action>
+  <action name="actionTrain_Harris">
+   <property name="text">
+    <string>Train Harris</string>
+   </property>
+  </action>
+  <action name="actionDetect_Harris">
+   <property name="text">
+    <string>Detect Harris</string>
    </property>
   </action>
  </widget>
